@@ -1,7 +1,13 @@
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Check, Camera, ArrowRight, Star } from "lucide-react";
+import { Check, Camera, ArrowRight, Star, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { detectGeo, type GeoInfo } from "@/lib/geo";
+import { toast } from "@/hooks/use-toast";
+import ThemeToggle from "@/components/ThemeToggle";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
@@ -13,66 +19,81 @@ const fadeUp = {
 
 const tiers = [
   {
+    id: "starter",
     name: "Starter",
-    price: "100",
+    price: 100,
     period: "/month",
     badge: null,
     desc: "Perfect for testing one event",
     trial: "1-day free trial",
-    features: [
-      "1 active event",
-      "50 guests per event",
-      "10 snaps per guest",
-      "Basic film filters",
-      "Shared album link",
-      "QR code generator",
-    ],
+    features: ["1 active event", "50 guests per event", "10 snaps per guest", "Basic film filters", "Shared album link", "QR code generator"],
   },
   {
+    id: "pro",
     name: "Pro",
-    price: "999",
+    price: 999,
     period: "/month",
     badge: "Most Popular",
     desc: "For event enthusiasts & planners",
     trial: null,
-    features: [
-      "Unlimited events",
-      "200 guests per event",
-      "35 snaps per guest",
-      "AI photo enhancement",
-      "Custom QR designs",
-      "Scavenger hunt prompts",
-      "Video recap generation",
-      "Priority support",
-    ],
+    features: ["Unlimited events", "200 guests per event", "35 snaps per guest", "All pro filters", "Custom QR designs", "Scavenger hunt prompts", "Photobook export", "Priority support"],
   },
   {
+    id: "platinum",
     name: "Platinum",
-    price: "6,999",
+    price: 6999,
     period: " one-time",
     badge: "Best Value",
     desc: "Lifetime access, unlimited everything",
     trial: null,
-    features: [
-      "Everything in Pro",
-      "Unlimited guests",
-      "Unlimited snaps",
-      "All AI features",
-      "Custom branding & watermark",
-      "White-label QR cards",
-      "Photobook export",
-      "4K photo downloads",
-      "Face recognition grouping",
-      "10% referral commission",
-      "Priority support forever",
-    ],
+    features: ["Everything in Pro", "Unlimited guests", "Unlimited snaps", "Custom branding & watermark", "White-label QR cards", "4K photo downloads", "10% referral commission", "Lifetime support"],
   },
 ];
 
+const FX_RATES: Record<string, number> = { KES: 1, USD: 0.0078, EUR: 0.0072, GBP: 0.0061, NGN: 12.5, ZAR: 0.14 };
+const SYMBOLS: Record<string, string> = { KES: "Ksh", USD: "$", EUR: "€", GBP: "£", NGN: "₦", ZAR: "R" };
+
 export default function PricingPage() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [geo, setGeo] = useState<GeoInfo | null>(null);
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+
+  useEffect(() => { detectGeo().then(setGeo); }, []);
+
+  function formatPrice(kes: number) {
+    if (!geo || geo.currency === "KES" || !FX_RATES[geo.currency]) {
+      return { symbol: "Ksh", amount: kes.toLocaleString() };
+    }
+    const converted = kes * FX_RATES[geo.currency];
+    const amount = converted < 10 ? converted.toFixed(2) : Math.round(converted).toLocaleString();
+    return { symbol: SYMBOLS[geo.currency] || geo.currency, amount };
+  }
+
+  async function handleCheckout(planId: string) {
+    if (!user) {
+      navigate(`/login?next=/pricing&plan=${planId}`);
+      return;
+    }
+    setLoadingPlan(planId);
+    try {
+      // Both KE and intl users use Paystack for now (Stripe placeholder when keys added)
+      if (geo && geo.provider === "stripe") {
+        toast({ title: "Stripe coming soon", description: "Using Paystack — supports international cards too." });
+      }
+      const { data, error } = await supabase.functions.invoke("paystack-init", {
+        body: { plan: planId, callback_url: `${window.location.origin}/payment-success` },
+      });
+      if (error || !data?.authorization_url) throw new Error(data?.error || "Checkout failed");
+      window.location.href = data.authorization_url;
+    } catch (err: any) {
+      toast({ title: "Checkout error", description: err.message, variant: "destructive" });
+      setLoadingPlan(null);
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gradient-hero relative film-grain">
-      {/* Nav */}
       <nav className="fixed top-0 w-full z-50 glass-card border-b border-border/30">
         <div className="container flex items-center justify-between h-16 px-4">
           <Link to="/" className="flex items-center gap-2">
@@ -81,76 +102,81 @@ export default function PricingPage() {
             </div>
             <span className="font-heading font-bold text-lg text-foreground">POV Moments</span>
           </Link>
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" asChild>
-              <Link to="/login">Log in</Link>
-            </Button>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <Button variant="ghost" size="sm" asChild><Link to="/login">Log in</Link></Button>
           </div>
         </div>
       </nav>
 
       <div className="pt-28 pb-20 px-4">
         <div className="container max-w-6xl mx-auto">
-          <motion.div initial="hidden" animate="visible" className="text-center mb-16 space-y-4">
-            <motion.h1 variants={fadeUp} custom={0}
-              className="font-heading text-4xl md:text-6xl font-bold text-foreground"
-            >
+          <motion.div initial="hidden" animate="visible" className="text-center mb-12 space-y-4">
+            <motion.h1 variants={fadeUp} custom={0} className="font-heading text-4xl md:text-6xl font-bold text-foreground">
               Simple, honest pricing
             </motion.h1>
             <motion.p variants={fadeUp} custom={1} className="text-lg text-muted-foreground max-w-xl mx-auto">
-              Start free. Upgrade when you're hooked. All prices in Kenyan Shillings (Ksh).
+              Start free. Upgrade when you're hooked.
+              {geo && geo.country !== "KE" && (
+                <span className="block text-sm mt-2 text-primary">
+                  Showing prices in {geo.currency} · charged in KES via Paystack
+                </span>
+              )}
             </motion.p>
           </motion.div>
 
           <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-            {tiers.map((tier, i) => (
-              <motion.div key={tier.name} initial="hidden" animate="visible" variants={fadeUp} custom={i + 2}
-                className={`relative rounded-3xl p-8 flex flex-col ${
-                  tier.badge === "Most Popular"
-                    ? "bg-gradient-warm text-primary-foreground shadow-2xl scale-[1.02] ring-2 ring-primary/20"
-                    : "glass-card"
-                }`}
-              >
-                {tier.badge && (
-                  <div className={`absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full text-xs font-semibold ${
-                    tier.badge === "Most Popular"
-                      ? "bg-secondary text-secondary-foreground"
-                      : "bg-primary/10 text-primary"
-                  }`}>
-                    <Star className="w-3 h-3 inline mr-1" />
-                    {tier.badge}
-                  </div>
-                )}
-                <div className="space-y-2 mb-6">
-                  <h3 className="font-heading text-xl font-semibold">{tier.name}</h3>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-sm">Ksh</span>
-                    <span className="font-heading text-4xl font-bold">{tier.price}</span>
-                    <span className="text-sm opacity-80">{tier.period}</span>
-                  </div>
-                  <p className="text-sm opacity-80">{tier.desc}</p>
-                  {tier.trial && (
-                    <p className="text-xs font-medium opacity-70">{tier.trial}</p>
-                  )}
-                </div>
-                <ul className="space-y-3 mb-8 flex-1">
-                  {tier.features.map((f) => (
-                    <li key={f} className="flex items-start gap-2 text-sm">
-                      <Check className="w-4 h-4 mt-0.5 shrink-0" />
-                      <span>{f}</span>
-                    </li>
-                  ))}
-                </ul>
-                <Button
-                  variant={tier.badge === "Most Popular" ? "glass" : "hero"}
-                  size="lg"
-                  className="w-full"
+            {tiers.map((tier, i) => {
+              const { symbol, amount } = formatPrice(tier.price);
+              const isPopular = tier.badge === "Most Popular";
+              return (
+                <motion.div key={tier.id} initial="hidden" animate="visible" variants={fadeUp} custom={i + 2}
+                  className={`relative rounded-3xl p-8 flex flex-col ${
+                    isPopular ? "bg-gradient-warm text-primary-foreground shadow-2xl scale-[1.02] ring-2 ring-primary/20" : "glass-card"
+                  }`}
                 >
-                  {tier.trial ? "Start Free Trial" : "Get Started"} <ArrowRight className="w-4 h-4" />
-                </Button>
-              </motion.div>
-            ))}
+                  {tier.badge && (
+                    <div className={`absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full text-xs font-semibold ${
+                      isPopular ? "bg-secondary text-secondary-foreground" : "bg-primary/10 text-primary"
+                    }`}>
+                      <Star className="w-3 h-3 inline mr-1" />
+                      {tier.badge}
+                    </div>
+                  )}
+                  <div className="space-y-2 mb-6">
+                    <h3 className="font-heading text-xl font-semibold">{tier.name}</h3>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-sm">{symbol}</span>
+                      <span className="font-heading text-4xl font-bold">{amount}</span>
+                      <span className="text-sm opacity-80">{tier.period}</span>
+                    </div>
+                    <p className="text-sm opacity-80">{tier.desc}</p>
+                    {tier.trial && <p className="text-xs font-medium opacity-70">{tier.trial}</p>}
+                  </div>
+                  <ul className="space-y-3 mb-8 flex-1">
+                    {tier.features.map((f) => (
+                      <li key={f} className="flex items-start gap-2 text-sm">
+                        <Check className="w-4 h-4 mt-0.5 shrink-0" /><span>{f}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <Button variant={isPopular ? "glass" : "hero"} size="lg" className="w-full"
+                    onClick={() => handleCheckout(tier.id)} disabled={loadingPlan === tier.id}
+                  >
+                    {loadingPlan === tier.id ? (
+                      <><Loader2 className="w-4 h-4 animate-spin" /> Redirecting…</>
+                    ) : (
+                      <>{tier.trial ? "Start Free Trial" : "Get Started"} <ArrowRight className="w-4 h-4" /></>
+                    )}
+                  </Button>
+                </motion.div>
+              );
+            })}
           </div>
+
+          <p className="text-center text-xs text-muted-foreground mt-8">
+            Secure checkout via Paystack · M-Pesa, Cards, Bank Transfer accepted
+          </p>
         </div>
       </div>
     </div>

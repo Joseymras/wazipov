@@ -15,6 +15,7 @@ import QRCodePage from "./pages/QRCodePage";
 import GalleryPage from "./pages/GalleryPage";
 import AdminPage from "./pages/AdminPage";
 import ReferralPage from "./pages/ReferralPage";
+import PaymentSuccessPage from "./pages/PaymentSuccessPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,6 +39,7 @@ const App = () => (
             <Route path="/events/:eventId/gallery" element={<GalleryPage />} />
             <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
             <Route path="/referral" element={<ProtectedRoute><ReferralPage /></ProtectedRoute>} />
+            <Route path="/payment-success" element={<PaymentSuccessPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>

@@ -51,10 +51,13 @@ export type Database = {
       }
       events: {
         Row: {
+          allow_video: boolean
+          countdown_seconds: number
           cover_photo_url: string | null
           created_at: string
           description: string | null
           event_date: string | null
+          filter_preset: string
           gallery_type: Database["public"]["Enums"]["gallery_type"]
           host_id: string
           id: string
@@ -68,12 +71,17 @@ export type Database = {
           snaps_per_guest: number
           theme_color: string | null
           updated_at: string
+          watermark_enabled: boolean
+          welcome_message: string | null
         }
         Insert: {
+          allow_video?: boolean
+          countdown_seconds?: number
           cover_photo_url?: string | null
           created_at?: string
           description?: string | null
           event_date?: string | null
+          filter_preset?: string
           gallery_type?: Database["public"]["Enums"]["gallery_type"]
           host_id: string
           id?: string
@@ -87,12 +95,17 @@ export type Database = {
           snaps_per_guest?: number
           theme_color?: string | null
           updated_at?: string
+          watermark_enabled?: boolean
+          welcome_message?: string | null
         }
         Update: {
+          allow_video?: boolean
+          countdown_seconds?: number
           cover_photo_url?: string | null
           created_at?: string
           description?: string | null
           event_date?: string | null
+          filter_preset?: string
           gallery_type?: Database["public"]["Enums"]["gallery_type"]
           host_id?: string
           id?: string
@@ -106,6 +119,29 @@ export type Database = {
           snaps_per_guest?: number
           theme_color?: string | null
           updated_at?: string
+          watermark_enabled?: boolean
+          welcome_message?: string | null
+        }
+        Relationships: []
+      }
+      photo_likes: {
+        Row: {
+          created_at: string
+          id: string
+          liker_identifier: string
+          photo_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          liker_identifier: string
+          photo_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          liker_identifier?: string
+          photo_id?: string
         }
         Relationships: []
       }
@@ -225,33 +261,45 @@ export type Database = {
       }
       subscriptions: {
         Row: {
+          amount_kes: number | null
           created_at: string
           current_period_end: string | null
           id: string
           paystack_customer_id: string | null
           paystack_subscription_code: string | null
+          plan_code: string | null
+          provider: string
+          reference: string | null
           status: string
           tier: Database["public"]["Enums"]["subscription_tier"]
           updated_at: string
           user_id: string
         }
         Insert: {
+          amount_kes?: number | null
           created_at?: string
           current_period_end?: string | null
           id?: string
           paystack_customer_id?: string | null
           paystack_subscription_code?: string | null
+          plan_code?: string | null
+          provider?: string
+          reference?: string | null
           status?: string
           tier?: Database["public"]["Enums"]["subscription_tier"]
           updated_at?: string
           user_id: string
         }
         Update: {
+          amount_kes?: number | null
           created_at?: string
           current_period_end?: string | null
           id?: string
           paystack_customer_id?: string | null
           paystack_subscription_code?: string | null
+          plan_code?: string | null
+          provider?: string
+          reference?: string | null
           status?: string
           tier?: Database["public"]["Enums"]["subscription_tier"]
           updated_at?: string
