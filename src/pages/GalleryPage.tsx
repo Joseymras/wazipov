@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Camera, Download, ArrowLeft, Lock, Eye, X, Trash2, Share2 } from "lucide-react";
+import { Download, ArrowLeft, Lock, Eye, X, Trash2, Share2, BookOpen, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import Navbar from "@/components/Navbar";
 import { toast } from "@/hooks/use-toast";
+import JSZip from "jszip";
+import jsPDF from "jspdf";
 
 interface Photo {
   id: string;
@@ -16,7 +18,6 @@ interface Photo {
   created_at: string;
   guest_id: string | null;
   ai_caption: string | null;
-  mood_tag: string | null;
   url?: string;
 }
 
@@ -31,10 +32,9 @@ export default function GalleryPage() {
   const [isHost, setIsHost] = useState(false);
   const [filter, setFilter] = useState<"all" | "my_pov">("all");
   const [guestId, setGuestId] = useState<string | null>(null);
+  const [busy, setBusy] = useState<"zip" | "pdf" | null>(null);
 
-  useEffect(() => {
-    loadGallery();
-  }, [eventId, user]);
+  useEffect(() => { loadGallery(); }, [eventId, user]);
 
   async function loadGallery() {
     const { data: evt } = await supabase.from("events").select("*").eq("id", eventId).single();
@@ -42,56 +42,28 @@ export default function GalleryPage() {
     setEvent(evt);
     setIsHost(user?.id === evt.host_id);
 
-    // Check if photos should be revealed
-    const shouldReveal = checkRevealStatus(evt);
-
-    // Get guest ID for "My POV" filter
     const guestIdent = localStorage.getItem(`pov_guest_${eventId}`);
     if (guestIdent) {
-      const { data: guest } = await supabase
-        .from("event_guests")
-        .select("id")
-        .eq("event_id", eventId!)
-        .eq("guest_identifier", guestIdent)
-        .maybeSingle();
+      const { data: guest } = await supabase.from("event_guests").select("id")
+        .eq("event_id", eventId!).eq("guest_identifier", guestIdent).maybeSingle();
       if (guest) setGuestId(guest.id);
     }
 
     let query = supabase.from("photos").select("*").eq("event_id", eventId!).eq("is_flagged", false).order("created_at", { ascending: false });
-
-    // Non-hosts can only see revealed photos
-    if (user?.id !== evt.host_id) {
-      query = query.eq("is_revealed", true);
-    }
-
+    if (user?.id !== evt.host_id) query = query.eq("is_revealed", true);
     const { data: photoData } = await query;
-
     if (photoData) {
-      const photosWithUrls = photoData.map(p => ({
+      setPhotos(photoData.map(p => ({
         ...p,
         url: supabase.storage.from("event-photos").getPublicUrl(p.storage_path).data.publicUrl,
-      }));
-      setPhotos(photosWithUrls);
+      })));
     }
     setLoading(false);
   }
 
-  function checkRevealStatus(evt: any): boolean {
-    if (evt.reveal_timing === "immediate") return true;
-    if (evt.reveal_timing === "custom" && evt.reveal_date) {
-      return new Date() >= new Date(evt.reveal_date);
-    }
-    if (evt.reveal_timing === "24h_delay" && evt.event_date) {
-      const revealTime = new Date(evt.event_date);
-      revealTime.setHours(revealTime.getHours() + 24);
-      return new Date() >= revealTime;
-    }
-    return false;
-  }
-
   async function revealAllPhotos() {
     await supabase.from("photos").update({ is_revealed: true }).eq("event_id", eventId!);
-    toast({ title: "Photos revealed!" });
+    toast({ title: "Photos revealed! 🎉" });
     loadGallery();
   }
 
@@ -102,26 +74,100 @@ export default function GalleryPage() {
     toast({ title: "Photo deleted" });
   }
 
-  async function downloadAll() {
-    for (const photo of photos) {
-      if (photo.url) {
-        const a = document.createElement("a");
-        a.href = photo.url;
-        a.download = `pov-${photo.id}.jpg`;
-        a.target = "_blank";
-        a.click();
+  async function downloadAllZip() {
+    if (!photos.length) return;
+    setBusy("zip");
+    try {
+      const zip = new JSZip();
+      const folder = zip.folder(event?.name || "pov-album")!;
+      await Promise.all(photos.map(async (p, i) => {
+        if (!p.url) return;
+        try {
+          const res = await fetch(p.url);
+          const blob = await res.blob();
+          folder.file(`pov-${String(i + 1).padStart(3, "0")}.jpg`, blob);
+        } catch { /* skip */ }
+      }));
+      const blob = await zip.generateAsync({ type: "blob" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `${event?.name || "pov-album"}.zip`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+      toast({ title: "ZIP downloaded!" });
+    } catch (err: any) {
+      toast({ title: "Download failed", description: err.message, variant: "destructive" });
+    }
+    setBusy(null);
+  }
+
+  async function exportPhotobook() {
+    if (!photos.length) return;
+    setBusy("pdf");
+    try {
+      const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+      const W = 210, H = 297, M = 15;
+
+      // Cover
+      pdf.setFillColor(232, 93, 58);
+      pdf.rect(0, 0, W, H, "F");
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(36);
+      pdf.text(event?.name || "POV Album", W / 2, H / 2 - 10, { align: "center" });
+      pdf.setFontSize(14);
+      pdf.setFont("helvetica", "normal");
+      const dateStr = event?.event_date ? new Date(event.event_date).toLocaleDateString() : "";
+      pdf.text(dateStr, W / 2, H / 2 + 5, { align: "center" });
+      pdf.setFontSize(10);
+      pdf.text(`${photos.length} moments captured`, W / 2, H - 25, { align: "center" });
+
+      // 4 photos per page grid
+      const cols = 2, rows = 2;
+      const cellW = (W - M * 3) / cols;
+      const cellH = (H - M * 3) / rows;
+
+      for (let i = 0; i < photos.length; i++) {
+        const p = photos[i];
+        if (!p.url) continue;
+        if (i % (cols * rows) === 0) pdf.addPage();
+        const idx = i % (cols * rows);
+        const col = idx % cols, row = Math.floor(idx / cols);
+        const x = M + col * (cellW + M);
+        const y = M + row * (cellH + M);
+        try {
+          const dataUrl = await fetchAsDataUrl(p.url);
+          pdf.addImage(dataUrl, "JPEG", x, y, cellW, cellH, undefined, "MEDIUM");
+        } catch { /* skip */ }
       }
+      pdf.save(`${event?.name || "pov-album"}-photobook.pdf`);
+      toast({ title: "Photobook PDF ready!" });
+    } catch (err: any) {
+      toast({ title: "Export failed", description: err.message, variant: "destructive" });
+    }
+    setBusy(null);
+  }
+
+  async function shareGallery() {
+    const url = window.location.href;
+    const text = `Check out the POV album from ${event?.name}! 📸`;
+    if (navigator.share) {
+      try { await navigator.share({ title: event?.name, text, url }); } catch { /* user cancelled */ }
+    } else {
+      await navigator.clipboard.writeText(url);
+      toast({ title: "Link copied!", description: "Share it anywhere — WhatsApp, IG, X, Messenger." });
     }
   }
 
-  const filteredPhotos = filter === "my_pov" && guestId
-    ? photos.filter(p => p.guest_id === guestId)
-    : photos;
-
+  const filteredPhotos = filter === "my_pov" && guestId ? photos.filter(p => p.guest_id === guestId) : photos;
   const unrevealedCount = isHost ? photos.filter(p => !p.is_revealed).length : 0;
 
   if (loading) {
-    return <div className="min-h-screen bg-background flex items-center justify-center"><Navbar /><p className="text-muted-foreground">Loading gallery...</p></div>;
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Navbar /><Loader2 className="w-8 h-8 text-primary animate-spin" />
+      </div>
+    );
   }
 
   return (
@@ -148,19 +194,22 @@ export default function GalleryPage() {
                     <Eye className="w-4 h-4" /> Reveal All ({unrevealedCount})
                   </Button>
                 )}
-                <Button variant="glass" size="sm" onClick={downloadAll}>
-                  <Download className="w-4 h-4" /> Download All
+                <Button variant="glass" size="sm" onClick={downloadAllZip} disabled={busy !== null || !photos.length}>
+                  {busy === "zip" ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                  Download ZIP
                 </Button>
-                <Button variant="glass" size="sm" onClick={() => {
-                  if (navigator.share) navigator.share({ title: event?.name, url: window.location.href });
-                  else { navigator.clipboard.writeText(window.location.href); toast({ title: "Link copied!" }); }
-                }}>
+                {isHost && (
+                  <Button variant="glass" size="sm" onClick={exportPhotobook} disabled={busy !== null || !photos.length}>
+                    {busy === "pdf" ? <Loader2 className="w-4 h-4 animate-spin" /> : <BookOpen className="w-4 h-4" />}
+                    Photobook PDF
+                  </Button>
+                )}
+                <Button variant="glass" size="sm" onClick={shareGallery}>
                   <Share2 className="w-4 h-4" /> Share
                 </Button>
               </div>
             </div>
 
-            {/* Filter tabs */}
             <div className="flex gap-4 mt-6 border-b border-border/50">
               {(["all", "my_pov"] as const).map(f => (
                 <button key={f} onClick={() => setFilter(f)}
@@ -180,28 +229,22 @@ export default function GalleryPage() {
               <p className="text-sm text-muted-foreground">The magic happens when the host reveals the album!</p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+            // Masonry via CSS columns
+            <div className="columns-2 md:columns-3 lg:columns-4 gap-3 [column-fill:_balance]">
               {filteredPhotos.map((photo, i) => (
-                <motion.div key={photo.id} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: i * 0.03 }}
-                  className="relative aspect-square rounded-2xl overflow-hidden cursor-pointer group"
+                <motion.div key={photo.id} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: Math.min(i, 12) * 0.025 }}
+                  className="relative mb-3 rounded-2xl overflow-hidden cursor-pointer group break-inside-avoid"
                   onClick={() => setSelectedPhoto(photo)}>
                   {photo.is_revealed || isHost ? (
-                    <img src={photo.url} alt="" className="w-full h-full object-cover transition-transform group-hover:scale-105" loading="lazy" />
+                    <img src={photo.url} alt="POV moment" className="w-full h-auto object-cover transition-transform group-hover:scale-105" loading="lazy" />
                   ) : (
-                    <div className="w-full h-full bg-muted flex items-center justify-center">
+                    <div className="w-full aspect-square bg-muted flex items-center justify-center">
                       <Lock className="w-8 h-8 text-muted-foreground" />
                     </div>
                   )}
                   {!photo.is_revealed && isHost && (
-                    <div className="absolute top-2 right-2 bg-accent/80 text-accent-foreground rounded-full px-2 py-0.5 text-xs">
-                      Hidden
-                    </div>
-                  )}
-                  {photo.ai_caption && (
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-foreground/60 p-2">
-                      <p className="text-xs text-background truncate">{photo.ai_caption}</p>
-                    </div>
+                    <div className="absolute top-2 right-2 bg-accent/80 text-accent-foreground rounded-full px-2 py-0.5 text-xs">Hidden</div>
                   )}
                 </motion.div>
               ))}
@@ -210,7 +253,6 @@ export default function GalleryPage() {
         </div>
       </div>
 
-      {/* Lightbox */}
       <AnimatePresence>
         {selectedPhoto && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -220,21 +262,23 @@ export default function GalleryPage() {
               className="relative max-w-3xl max-h-[80vh] w-full" onClick={e => e.stopPropagation()}>
               <img src={selectedPhoto.url} alt="" className="w-full h-full object-contain rounded-2xl" />
               <div className="absolute top-4 right-4 flex gap-2">
+                <a href={selectedPhoto.url} download={`pov-${selectedPhoto.id}.jpg`} target="_blank" rel="noreferrer"
+                  className="w-10 h-10 rounded-full bg-background/20 flex items-center justify-center hover:bg-background/40 transition-colors">
+                  <Download className="w-5 h-5 text-background" />
+                </a>
                 {isHost && (
-                  <button onClick={() => deletePhoto(selectedPhoto.id)}
+                  <button onClick={() => deletePhoto(selectedPhoto.id)} aria-label="Delete photo"
                     className="w-10 h-10 rounded-full bg-destructive/80 flex items-center justify-center hover:bg-destructive transition-colors">
                     <Trash2 className="w-5 h-5 text-background" />
                   </button>
                 )}
-                <button onClick={() => setSelectedPhoto(null)}
+                <button onClick={() => setSelectedPhoto(null)} aria-label="Close"
                   className="w-10 h-10 rounded-full bg-background/20 flex items-center justify-center hover:bg-background/40 transition-colors">
                   <X className="w-5 h-5 text-background" />
                 </button>
               </div>
               <div className="absolute bottom-4 left-4 right-4 text-center">
-                <p className="text-xs text-background/60">
-                  {new Date(selectedPhoto.created_at).toLocaleString()}
-                </p>
+                <p className="text-xs text-background/60">{new Date(selectedPhoto.created_at).toLocaleString()}</p>
               </div>
             </motion.div>
           </motion.div>
@@ -242,4 +286,15 @@ export default function GalleryPage() {
       </AnimatePresence>
     </div>
   );
+}
+
+async function fetchAsDataUrl(url: string): Promise<string> {
+  const res = await fetch(url);
+  const blob = await res.blob();
+  return await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
 }

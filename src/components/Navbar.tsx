@@ -1,7 +1,8 @@
-import { Camera, Settings, LogOut } from "lucide-react";
+import { Camera, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import ThemeToggle from "@/components/ThemeToggle";
 
 export default function Navbar() {
   const { user, signOut, profile } = useAuth();
@@ -15,19 +16,21 @@ export default function Navbar() {
           </div>
           <span className="font-heading font-bold text-lg text-foreground">POV Moments</span>
         </Link>
-        <div className="flex items-center gap-3 text-sm">
+        <div className="flex items-center gap-2 text-sm">
+          <ThemeToggle />
           {user ? (
             <>
-              <Button variant="ghost" size="sm" asChild>
+              <Button variant="ghost" size="sm" asChild className="hidden sm:inline-flex">
                 <Link to="/dashboard">Dashboard</Link>
               </Button>
-              <Button variant="ghost" size="sm" asChild>
+              <Button variant="ghost" size="sm" asChild className="hidden sm:inline-flex">
                 <Link to="/pricing">Upgrade</Link>
               </Button>
-              <span className="text-muted-foreground text-xs hidden sm:inline">
+              <span className="text-muted-foreground text-xs hidden md:inline">
                 {profile?.display_name || user.email}
               </span>
-              <button onClick={signOut} className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-colors">
+              <button onClick={signOut} aria-label="Sign out"
+                className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-colors">
                 <LogOut className="w-4 h-4 text-primary" />
               </button>
             </>
