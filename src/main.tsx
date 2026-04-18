@@ -1,6 +1,7 @@
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
+import "./lib/i18n";
 
 // Apply stored theme before paint to prevent flash
 const stored = localStorage.getItem("pov-theme");
