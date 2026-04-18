@@ -40,7 +40,7 @@ export default function AdminPage() {
 
   async function loadAds() {
     const { data } = await supabase.from("platform_settings").select("value").eq("key", "adsense").maybeSingle();
-    if (data?.value) setAdsense(data.value as AdsenseConf);
+    if (data?.value) setAdsense(data.value as unknown as AdsenseConf);
   }
 
   async function saveAds() {
