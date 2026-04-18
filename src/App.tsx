@@ -17,6 +17,7 @@ import AdminPage from "./pages/AdminPage";
 import ReferralPage from "./pages/ReferralPage";
 import PaymentSuccessPage from "./pages/PaymentSuccessPage";
 import NotFound from "./pages/NotFound";
+import AIChatWidget from "@/components/AIChatWidget";
 
 const queryClient = new QueryClient();
 
@@ -42,6 +43,7 @@ const App = () => (
             <Route path="/payment-success" element={<PaymentSuccessPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
+          <AIChatWidget />
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>

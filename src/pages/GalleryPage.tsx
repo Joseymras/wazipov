@@ -9,6 +9,8 @@ import Navbar from "@/components/Navbar";
 import { toast } from "@/hooks/use-toast";
 import JSZip from "jszip";
 import jsPDF from "jspdf";
+import AudioGuestbook from "@/components/AudioGuestbook";
+import AdSlot from "@/components/AdSlot";
 
 interface Photo {
   id: string;
@@ -248,6 +250,13 @@ export default function GalleryPage() {
                   )}
                 </motion.div>
               ))}
+            </div>
+          )}
+
+          {eventId && (
+            <div className="mt-10 grid md:grid-cols-2 gap-6">
+              <AudioGuestbook eventId={eventId} isHost={isHost} />
+              <AdSlot slotKey="gallery-side" />
             </div>
           )}
         </div>

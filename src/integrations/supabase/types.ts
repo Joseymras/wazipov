@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      audio_guestbook: {
+        Row: {
+          created_at: string
+          duration_seconds: number | null
+          event_id: string
+          guest_id: string | null
+          guest_name: string | null
+          id: string
+          storage_path: string
+        }
+        Insert: {
+          created_at?: string
+          duration_seconds?: number | null
+          event_id: string
+          guest_id?: string | null
+          guest_name?: string | null
+          id?: string
+          storage_path: string
+        }
+        Update: {
+          created_at?: string
+          duration_seconds?: number | null
+          event_id?: string
+          guest_id?: string | null
+          guest_name?: string | null
+          id?: string
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audio_guestbook_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audio_guestbook_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "event_guests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_guests: {
         Row: {
           claimed_by_user_id: string | null
@@ -204,6 +249,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      platform_settings: {
+        Row: {
+          key: string
+          updated_at: string
+          value: Json
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          value?: Json
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          value?: Json
+        }
+        Relationships: []
       }
       profiles: {
         Row: {

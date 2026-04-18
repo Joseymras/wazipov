@@ -1,19 +1,24 @@
 import { motion } from "framer-motion";
-import { Camera, Sparkles, Clock, Users, QrCode, ArrowRight, Star, Heart, Image as ImageIcon } from "lucide-react";
+import { Camera, Sparkles, Clock, QrCode, ArrowRight, Star, BookOpen, Mic, Wand2, Lock, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import ThemeToggle from "@/components/ThemeToggle";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
+import AdSlot from "@/components/AdSlot";
+import hero1 from "@/assets/hero-1.jpg";
+import hero2 from "@/assets/hero-2.jpg";
+import hero3 from "@/assets/hero-3.jpg";
 
 const fadeUp = {
-  hidden: { opacity: 0, y: 20 },
+  hidden: { opacity: 0, y: 24 },
   visible: (i: number) => ({
     opacity: 1, y: 0,
-    transition: { delay: i * 0.08, duration: 0.6, ease: [0.22, 1, 0.36, 1] as const },
+    transition: { delay: i * 0.08, duration: 0.7, ease: [0.22, 1, 0.36, 1] as const },
   }),
 };
 
-// Curated event photos from Pexels (free, no-attribution-required hotlinking)
-const ugcPhotos = [
+const ugc = [
   "https://images.pexels.com/photos/1024960/pexels-photo-1024960.jpeg?auto=compress&w=400",
   "https://images.pexels.com/photos/3171837/pexels-photo-3171837.jpeg?auto=compress&w=400",
   "https://images.pexels.com/photos/2306281/pexels-photo-2306281.jpeg?auto=compress&w=400",
@@ -28,18 +33,37 @@ const ugcPhotos = [
   "https://images.pexels.com/photos/2774556/pexels-photo-2774556.jpeg?auto=compress&w=400",
 ];
 
-const features = [
-  { icon: QrCode, title: "Scan & Snap", desc: "Guests scan a QR code — camera opens instantly. No downloads, no sign-ups." },
-  { icon: Camera, title: "Limited Snaps", desc: "Just like a real disposable — each guest gets a set number of shots. Every photo counts." },
-  { icon: Clock, title: "Reveal the Magic", desc: "Photos stay hidden until you choose to reveal them. The anticipation is everything." },
-  { icon: Users, title: "Shared Album", desc: "Every guest's perspective in one stunning gallery — your event through every eye." },
-  { icon: Sparkles, title: "Pro Filters", desc: "Disposable, B&W, sepia, glam — every photo gets that perfect aesthetic." },
-  { icon: Heart, title: "Photobook Export", desc: "Turn your album into a beautiful PDF photobook with one click." },
-];
+function PhoneMock({ src, rotate = 0, delay = 0 }: { src: string; rotate?: number; delay?: number }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 40, rotate: rotate - 6 }}
+      whileInView={{ opacity: 1, y: 0, rotate }}
+      viewport={{ once: true, margin: "-50px" }}
+      transition={{ delay, duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
+      className="relative w-[180px] sm:w-[220px] md:w-[260px] aspect-[9/19] rounded-[2.5rem] bg-foreground p-2.5 shadow-2xl shrink-0"
+    >
+      <div className="absolute top-2.5 left-1/2 -translate-x-1/2 w-20 h-5 bg-foreground rounded-b-2xl z-10" />
+      <div className="relative w-full h-full rounded-[2rem] overflow-hidden bg-background">
+        <img src={src} alt="POV moment" loading="lazy" className="w-full h-full object-cover" />
+        {/* Shutter UI overlay */}
+        <div className="absolute bottom-0 inset-x-0 p-3 bg-gradient-to-t from-foreground/70 to-transparent flex items-center justify-center">
+          <div className="w-12 h-12 rounded-full border-[3px] border-background/80 flex items-center justify-center">
+            <div className="w-9 h-9 rounded-full bg-background/90" />
+          </div>
+        </div>
+        <div className="absolute top-3 left-3 text-[10px] font-semibold text-background/90 bg-foreground/40 backdrop-blur rounded-full px-2 py-0.5">
+          25 SHOTS
+        </div>
+      </div>
+    </motion.div>
+  );
+}
 
 export default function LandingPage() {
+  const { t } = useTranslation();
+
   return (
-    <div className="min-h-screen bg-gradient-hero relative overflow-hidden film-grain">
+    <div className="min-h-screen bg-background text-foreground relative film-grain overflow-hidden">
       {/* Nav */}
       <nav className="fixed top-0 w-full z-50 glass-card border-b border-border/30">
         <div className="container flex items-center justify-between h-16 px-4">
@@ -47,144 +71,166 @@ export default function LandingPage() {
             <div className="w-8 h-8 rounded-lg bg-gradient-warm flex items-center justify-center">
               <Camera className="w-4 h-4 text-primary-foreground" />
             </div>
-            <span className="font-heading font-bold text-lg text-foreground">POV Moments</span>
+            <span className="font-heading font-bold text-lg">POV Moments</span>
           </Link>
           <div className="hidden md:flex items-center gap-8 text-sm text-muted-foreground">
-            <Link to="/pricing" className="hover:text-foreground transition-colors">Pricing</Link>
-            <a href="#features" className="hover:text-foreground transition-colors">Features</a>
-            <a href="#how" className="hover:text-foreground transition-colors">How it Works</a>
+            <Link to="/pricing" className="hover:text-foreground transition-colors">{t("nav_pricing")}</Link>
+            <a href="#features" className="hover:text-foreground transition-colors">{t("nav_features")}</a>
+            <a href="#how" className="hover:text-foreground transition-colors">{t("nav_how")}</a>
             <a href="#wall" className="hover:text-foreground transition-colors">Gallery</a>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
+            <LanguageSwitcher />
             <ThemeToggle />
             <Button variant="ghost" size="sm" asChild className="hidden sm:inline-flex">
-              <Link to="/login">Log in</Link>
+              <Link to="/login">{t("nav_login")}</Link>
             </Button>
             <Button variant="hero" size="sm" asChild>
-              <Link to="/pricing">Get Started</Link>
+              <Link to="/pricing">{t("nav_get_started")}</Link>
             </Button>
           </div>
         </div>
       </nav>
 
-      {/* Hero */}
-      <section className="pt-32 pb-16 px-4">
-        <div className="container max-w-5xl mx-auto text-center">
-          <motion.div initial="hidden" animate="visible" className="space-y-6">
-            <motion.div variants={fadeUp} custom={0}
-              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium"
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              The modern disposable camera for events
+      {/* HERO — POV-inspired dark blue band with phone mockups */}
+      <section className="relative pt-24 pb-16 md:pb-24 px-4 bg-gradient-hero">
+        <div className="container max-w-7xl mx-auto">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            <motion.div initial="hidden" animate="visible" className="space-y-6 text-center lg:text-left">
+              <motion.div variants={fadeUp} custom={0}
+                className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-semibold uppercase tracking-wider">
+                <Sparkles className="w-3.5 h-3.5" /> {t("hero_badge")}
+              </motion.div>
+              <motion.h1 variants={fadeUp} custom={1}
+                className="font-heading text-5xl md:text-6xl lg:text-7xl font-bold leading-[1.02] tracking-tight uppercase">
+                {t("hero_title")}<br />
+                <span className="text-gradient-warm">{t("hero_title_2")}</span>
+              </motion.h1>
+              <motion.p variants={fadeUp} custom={2} className="text-lg text-muted-foreground max-w-xl mx-auto lg:mx-0 leading-relaxed">
+                {t("hero_sub")}
+              </motion.p>
+              <motion.div variants={fadeUp} custom={3} className="flex flex-col sm:flex-row items-center lg:items-start justify-center lg:justify-start gap-3 pt-2">
+                <Button variant="hero" size="xl" asChild>
+                  <Link to="/pricing">{t("cta_create")} <ArrowRight className="w-5 h-5" /></Link>
+                </Button>
+                <Button variant="glass" size="lg" asChild>
+                  <Link to="/camera/demo">{t("cta_try")}</Link>
+                </Button>
+              </motion.div>
+              <motion.div variants={fadeUp} custom={4} className="flex items-center justify-center lg:justify-start gap-1 pt-2">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Star key={i} className="w-4 h-4 fill-secondary text-secondary" />
+                ))}
+                <span className="text-sm text-muted-foreground ml-2">{t("rated")}</span>
+              </motion.div>
             </motion.div>
 
-            <motion.h1 variants={fadeUp} custom={1}
-              className="font-heading text-5xl md:text-7xl font-bold leading-[1.05] tracking-tight text-foreground"
-            >
-              Capture every POV.{" "}
-              <span className="text-gradient-warm">Reveal the magic later.</span>
-            </motion.h1>
-
-            <motion.p variants={fadeUp} custom={2}
-              className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed"
-            >
-              Guests scan a QR code, snap photos with a beautiful disposable-style camera,
-              and the album reveals after your event. Pure magic, zero friction.
-            </motion.p>
-
-            <motion.div variants={fadeUp} custom={3} className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
-              <Button variant="hero" size="xl" asChild>
-                <Link to="/pricing">
-                  Create Your First Event <ArrowRight className="w-5 h-5" />
-                </Link>
-              </Button>
-              <Button variant="glass" size="lg" asChild>
-                <Link to="/camera/demo">Try the Camera</Link>
-              </Button>
-            </motion.div>
-
-            <motion.div variants={fadeUp} custom={4} className="flex items-center justify-center gap-1 pt-2">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Star key={i} className="w-4 h-4 fill-secondary text-secondary" />
-              ))}
-              <span className="text-sm text-muted-foreground ml-2">4.9 · 25,000+ events captured</span>
-            </motion.div>
-          </motion.div>
+            {/* Phone mockup trio */}
+            <div className="relative flex items-center justify-center gap-2 sm:gap-4 lg:gap-2 perspective-1000">
+              <PhoneMock src={hero1} rotate={-8} delay={0.1} />
+              <PhoneMock src={hero2} rotate={0} delay={0.25} />
+              <PhoneMock src={hero3} rotate={8} delay={0.4} />
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* UGC Photo Wall (simplebooth-inspired) */}
-      <section id="wall" className="py-12 px-4 relative overflow-hidden">
+      {/* UGC photo wall */}
+      <section id="wall" className="py-12 px-4 relative">
         <div className="container max-w-7xl mx-auto">
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 md:gap-3">
-            {ugcPhotos.map((src, i) => (
-              <motion.div
-                key={i}
+            {ugc.map((src, i) => (
+              <motion.div key={i}
                 initial={{ opacity: 0, scale: 0.9 }}
                 whileInView={{ opacity: 1, scale: 1 }}
                 viewport={{ once: true, margin: "-50px" }}
-                transition={{ delay: (i % 6) * 0.05, duration: 0.5 }}
-                className={`relative rounded-2xl overflow-hidden shadow-lg ${i % 5 === 0 ? "aspect-[3/4] row-span-2" : "aspect-square"}`}
-              >
-                <img src={src} alt="Event moment" loading="lazy" className="w-full h-full object-cover" />
+                transition={{ delay: (i % 6) * 0.04, duration: 0.5 }}
+                className={`relative rounded-2xl overflow-hidden shadow-lg ${i % 5 === 0 ? "aspect-[3/4] row-span-2" : "aspect-square"}`}>
+                <img src={src} alt="Event" loading="lazy" className="w-full h-full object-cover hover:scale-105 transition-transform duration-700" />
               </motion.div>
             ))}
           </div>
           <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
             className="mt-10 max-w-2xl mx-auto bg-card/90 backdrop-blur rounded-2xl p-6 text-center shadow-xl border border-border/50">
             <p className="text-xs uppercase tracking-widest text-primary font-semibold">40 Million+ moments captured 🎉</p>
-            <p className="font-heading text-2xl md:text-3xl font-bold text-foreground mt-2">Making events awesome since day one.</p>
+            <p className="font-heading text-2xl md:text-3xl font-bold mt-2">Making events awesome since day one.</p>
           </motion.div>
         </div>
       </section>
 
-      {/* How it Works */}
-      <section id="how" className="py-20 px-4">
-        <div className="container max-w-5xl mx-auto">
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} className="text-center mb-16">
-            <motion.h2 variants={fadeUp} custom={0} className="font-heading text-3xl md:text-5xl font-bold text-foreground">
-              Simple as 1-2-3
-            </motion.h2>
-          </motion.div>
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              { step: "01", title: "Create Event", desc: "Set up your event in seconds. Choose snaps, reveal time, and theme." },
-              { step: "02", title: "Share QR Code", desc: "Print or share your unique QR code. Guests scan and start snapping." },
-              { step: "03", title: "Reveal & Relive", desc: "Photos reveal on your schedule. Download, share, or export as a photobook." },
-            ].map((item, i) => (
-              <motion.div key={i} initial="hidden" whileInView="visible" viewport={{ once: true }}
-                variants={fadeUp} custom={i} className="text-center space-y-4"
-              >
-                <div className="text-6xl font-heading font-bold text-gradient-warm">{item.step}</div>
-                <h3 className="font-heading text-xl font-semibold text-foreground">{item.title}</h3>
-                <p className="text-muted-foreground leading-relaxed">{item.desc}</p>
-              </motion.div>
-            ))}
+      <AdSlot slotKey="landing-mid" className="container max-w-3xl mx-auto" />
+
+      {/* 6 Reasons (Lense-inspired with phone in middle) */}
+      <section id="features" className="py-20 px-4 bg-card/40">
+        <div className="container max-w-6xl mx-auto">
+          <motion.h2 initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+            className="font-heading text-3xl md:text-5xl font-bold text-center mb-16">
+            {t("why_title")}
+          </motion.h2>
+          <div className="grid lg:grid-cols-3 gap-10 items-center">
+            <ul className="space-y-8 lg:text-right">
+              {[
+                { icon: Camera, title: "Capture every moment", desc: "Each guest gets a disposable-style camera in their browser. No app, no signup." },
+                { icon: Clock, title: "Delayed reveal", desc: "Photos stay hidden until you choose. The anticipation is everything." },
+                { icon: Sparkles, title: "One shared album", desc: "Every guest's perspective in one stunning gallery." },
+              ].map((r, i) => (
+                <motion.li key={i} initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}
+                  transition={{ delay: i * 0.1 }} className="space-y-1">
+                  <div className="font-heading font-semibold flex items-center gap-2 lg:flex-row-reverse">
+                    <r.icon className="w-4 h-4 text-primary" /> {i + 1}. {r.title}
+                  </div>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{r.desc}</p>
+                </motion.li>
+              ))}
+            </ul>
+            <div className="flex justify-center order-first lg:order-none">
+              <PhoneMock src={hero1} rotate={0} delay={0} />
+            </div>
+            <ul className="space-y-8">
+              {[
+                { icon: QrCode, title: "Easy QR sharing", desc: "Scan to launch — no downloads required." },
+                { icon: Wand2, title: "Pro filters & effects", desc: "Disposable, B&W, glam, vintage. Plus video, GIF & boomerang." },
+                { icon: Lock, title: "Safe cloud storage", desc: "Private until reveal. Hosts always own a downloadable copy." },
+              ].map((r, i) => (
+                <motion.li key={i} initial={{ opacity: 0, x: 20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}
+                  transition={{ delay: i * 0.1 }} className="space-y-1">
+                  <div className="font-heading font-semibold flex items-center gap-2">
+                    <r.icon className="w-4 h-4 text-primary" /> {i + 4}. {r.title}
+                  </div>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{r.desc}</p>
+                </motion.li>
+              ))}
+            </ul>
           </div>
         </div>
       </section>
 
-      {/* Features */}
-      <section id="features" className="py-20 px-4 bg-card/50">
+      {/* Beyond just a photobooth */}
+      <section className="py-20 px-4">
         <div className="container max-w-5xl mx-auto">
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} className="text-center mb-16">
-            <motion.h2 variants={fadeUp} custom={0} className="font-heading text-3xl md:text-5xl font-bold text-foreground">
-              Everything you need
-            </motion.h2>
-            <motion.p variants={fadeUp} custom={1} className="text-muted-foreground mt-4 text-lg">
-              From camera to gallery, we've got every moment covered.
-            </motion.p>
-          </motion.div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {features.map((f, i) => (
-              <motion.div key={i} initial="hidden" whileInView="visible" viewport={{ once: true }}
-                variants={fadeUp} custom={i}
-                className="glass-card rounded-2xl p-6 space-y-3 hover:shadow-lg transition-shadow"
-              >
+          <motion.h2 initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+            className="font-heading text-3xl md:text-5xl font-bold text-center mb-4">
+            More than just a photobooth
+          </motion.h2>
+          <p className="text-center text-muted-foreground mb-12 max-w-xl mx-auto">
+            Photo, Video, Boomerang, GIF, Green Screen, Audio Guestbook & Photobook export — all in one PWA.
+          </p>
+          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
+            {[
+              { icon: Camera, title: "Photo Booth", desc: "Classic snaps with filters & overlays." },
+              { icon: Sparkles, title: "GIF Booth", desc: "4-photo bursts that loop forever." },
+              { icon: Wand2, title: "Boomerang", desc: "Forward-and-reverse magic clips." },
+              { icon: BookOpen, title: "Photobook PDF", desc: "Auto-generated layouts. One-click export." },
+              { icon: Mic, title: "Audio Guestbook", desc: "Voicemails alongside the album." },
+              { icon: Globe, title: "Multilingual + global pay", desc: "5 languages. M-Pesa, Stripe, more." },
+            ].map((f, i) => (
+              <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+                transition={{ delay: i * 0.05 }}
+                className="glass-card rounded-2xl p-5 space-y-2 hover:shadow-lg transition-shadow">
                 <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
                   <f.icon className="w-5 h-5 text-primary" />
                 </div>
-                <h3 className="font-heading font-semibold text-foreground">{f.title}</h3>
+                <h3 className="font-heading font-semibold">{f.title}</h3>
                 <p className="text-sm text-muted-foreground leading-relaxed">{f.desc}</p>
               </motion.div>
             ))}
@@ -193,23 +239,16 @@ export default function LandingPage() {
       </section>
 
       {/* CTA */}
-      <section className="py-24 px-4">
+      <section className="py-24 px-4 bg-gradient-hero">
         <div className="container max-w-3xl mx-auto text-center space-y-6">
-          <motion.h2 initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}
-            className="font-heading text-3xl md:text-5xl font-bold text-foreground"
-          >
-            Ready to capture every moment?
+          <motion.h2 initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+            className="font-heading text-3xl md:text-5xl font-bold">
+            Ready to capture every POV?
           </motion.h2>
-          <motion.p initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={1}
-            className="text-muted-foreground text-lg"
-          >
-            Start free. Upgrade when you're hooked.
-          </motion.p>
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={2}>
-            <Button variant="hero" size="xl" asChild>
-              <Link to="/pricing">Get Started <ArrowRight className="w-5 h-5" /></Link>
-            </Button>
-          </motion.div>
+          <p className="text-muted-foreground text-lg">Start free. Upgrade when you're hooked.</p>
+          <Button variant="hero" size="xl" asChild>
+            <Link to="/pricing">Get Started <ArrowRight className="w-5 h-5" /></Link>
+          </Button>
         </div>
       </section>
 
