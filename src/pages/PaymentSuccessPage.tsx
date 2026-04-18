@@ -13,11 +13,23 @@ export default function PaymentSuccessPage() {
 
   useEffect(() => {
     const reference = params.get("reference") || params.get("trxref");
-    if (!reference) { setStatus("failed"); return; }
-    supabase.functions.invoke("paystack-verify", { body: { reference } }).then(({ data }) => {
-      if (data?.success) { setStatus("success"); setPlan(data.plan || ""); }
-      else setStatus("failed");
-    }).catch(() => setStatus("failed"));
+    const sessionId = params.get("session_id");
+    const provider = params.get("provider");
+
+    const verify = async () => {
+      try {
+        if (sessionId || provider === "stripe") {
+          const { data } = await supabase.functions.invoke("stripe-verify", { body: { session_id: sessionId } });
+          if (data?.success) { setStatus("success"); setPlan(data.plan || ""); } else setStatus("failed");
+        } else if (reference) {
+          const { data } = await supabase.functions.invoke("paystack-verify", { body: { reference } });
+          if (data?.success) { setStatus("success"); setPlan(data.plan || ""); } else setStatus("failed");
+        } else {
+          setStatus("failed");
+        }
+      } catch { setStatus("failed"); }
+    };
+    verify();
   }, [params]);
 
   return (
