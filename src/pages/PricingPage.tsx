@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Check, Camera, ArrowRight, Star, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { detectGeo, type GeoInfo } from "@/lib/geo";
@@ -36,7 +36,7 @@ const tiers = [
     badge: "Most Popular",
     desc: "For event enthusiasts & planners",
     trial: null,
-    features: ["Unlimited events", "200 guests per event", "35 snaps per guest", "All pro filters", "Custom QR designs", "Scavenger hunt prompts", "Photobook export", "Priority support"],
+    features: ["Unlimited events", "200 guests per event", "35 snaps per guest", "Video, GIF & Boomerang", "All pro filters", "Custom QR designs", "Photobook export", "Priority support"],
   },
   {
     id: "platinum",
@@ -46,7 +46,7 @@ const tiers = [
     badge: "Best Value",
     desc: "Lifetime access, unlimited everything",
     trial: null,
-    features: ["Everything in Pro", "Unlimited guests", "Unlimited snaps", "Custom branding & watermark", "White-label QR cards", "4K photo downloads", "10% referral commission", "Lifetime support"],
+    features: ["Everything in Pro", "Unlimited guests", "Unlimited snaps", "Custom branding & watermark", "White-label QR cards", "4K downloads", "10% referral commission", "Lifetime support"],
   },
 ];
 
@@ -56,10 +56,22 @@ const SYMBOLS: Record<string, string> = { KES: "Ksh", USD: "$", EUR: "€", GBP:
 export default function PricingPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [geo, setGeo] = useState<GeoInfo | null>(null);
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+  // Manual override: user can pick provider on checkout
+  const [providerOverride, setProviderOverride] = useState<"auto" | "paystack" | "stripe">("auto");
 
   useEffect(() => { detectGeo().then(setGeo); }, []);
+
+  // Auto-trigger checkout if redirected back from login with a plan param
+  useEffect(() => {
+    const planParam = searchParams.get("plan");
+    if (user && planParam && tiers.find(t => t.id === planParam)) {
+      handleCheckout(planParam);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   function formatPrice(kes: number) {
     if (!geo || geo.currency === "KES" || !FX_RATES[geo.currency]) {
@@ -70,27 +82,43 @@ export default function PricingPage() {
     return { symbol: SYMBOLS[geo.currency] || geo.currency, amount };
   }
 
+  function resolveProvider(): "paystack" | "stripe" {
+    if (providerOverride !== "auto") return providerOverride;
+    return geo?.provider || "paystack";
+  }
+
   async function handleCheckout(planId: string) {
     if (!user) {
-      navigate(`/login?next=/pricing&plan=${planId}`);
+      navigate(`/login?next=/pricing?plan=${planId}`);
       return;
     }
+    const provider = resolveProvider();
     setLoadingPlan(planId);
     try {
-      // Both KE and intl users use Paystack for now (Stripe placeholder when keys added)
-      if (geo && geo.provider === "stripe") {
-        toast({ title: "Stripe coming soon", description: "Using Paystack — supports international cards too." });
+      if (provider === "stripe") {
+        const { data, error } = await supabase.functions.invoke("stripe-init", {
+          body: {
+            plan: planId,
+            success_url: `${window.location.origin}/payment-success`,
+            cancel_url: `${window.location.origin}/pricing`,
+          },
+        });
+        if (error || !data?.url) throw new Error(data?.error || "Stripe checkout failed");
+        window.location.href = data.url;
+      } else {
+        const { data, error } = await supabase.functions.invoke("paystack-init", {
+          body: { plan: planId, callback_url: `${window.location.origin}/payment-success` },
+        });
+        if (error || !data?.authorization_url) throw new Error(data?.error || "Paystack checkout failed");
+        window.location.href = data.authorization_url;
       }
-      const { data, error } = await supabase.functions.invoke("paystack-init", {
-        body: { plan: planId, callback_url: `${window.location.origin}/payment-success` },
-      });
-      if (error || !data?.authorization_url) throw new Error(data?.error || "Checkout failed");
-      window.location.href = data.authorization_url;
     } catch (err: any) {
       toast({ title: "Checkout error", description: err.message, variant: "destructive" });
       setLoadingPlan(null);
     }
   }
+
+  const activeProvider = resolveProvider();
 
   return (
     <div className="min-h-screen bg-gradient-hero relative film-grain">
@@ -119,10 +147,27 @@ export default function PricingPage() {
               Start free. Upgrade when you're hooked.
               {geo && geo.country !== "KE" && (
                 <span className="block text-sm mt-2 text-primary">
-                  Showing prices in {geo.currency} · charged in KES via Paystack
+                  Showing prices in {geo.currency}
                 </span>
               )}
             </motion.p>
+
+            {/* Provider selector */}
+            <motion.div variants={fadeUp} custom={2} className="flex items-center justify-center gap-2 flex-wrap">
+              <span className="text-xs text-muted-foreground">Pay with:</span>
+              {([
+                { id: "auto", label: `Auto (${geo?.provider || "paystack"})` },
+                { id: "paystack", label: "Paystack · M-Pesa" },
+                { id: "stripe", label: "Stripe · Card" },
+              ] as const).map(opt => (
+                <button key={opt.id} onClick={() => setProviderOverride(opt.id)}
+                  className={`text-xs px-3 py-1 rounded-full transition-colors ${
+                    providerOverride === opt.id ? "bg-primary text-primary-foreground" : "bg-foreground/5 text-muted-foreground hover:bg-foreground/10"
+                  }`}>
+                  {opt.label}
+                </button>
+              ))}
+            </motion.div>
           </motion.div>
 
           <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
@@ -130,7 +175,7 @@ export default function PricingPage() {
               const { symbol, amount } = formatPrice(tier.price);
               const isPopular = tier.badge === "Most Popular";
               return (
-                <motion.div key={tier.id} initial="hidden" animate="visible" variants={fadeUp} custom={i + 2}
+                <motion.div key={tier.id} initial="hidden" animate="visible" variants={fadeUp} custom={i + 3}
                   className={`relative rounded-3xl p-8 flex flex-col ${
                     isPopular ? "bg-gradient-warm text-primary-foreground shadow-2xl scale-[1.02] ring-2 ring-primary/20" : "glass-card"
                   }`}
@@ -175,7 +220,9 @@ export default function PricingPage() {
           </div>
 
           <p className="text-center text-xs text-muted-foreground mt-8">
-            Secure checkout via Paystack · M-Pesa, Cards, Bank Transfer accepted
+            {activeProvider === "stripe"
+              ? "Secure card checkout via Stripe · International cards accepted"
+              : "Secure checkout via Paystack · M-Pesa, Cards, Bank Transfer accepted"}
           </p>
         </div>
       </div>
