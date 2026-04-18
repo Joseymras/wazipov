@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Camera, Mail, Lock, ArrowRight, Eye, EyeOff, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
 const fadeUp = {
@@ -22,8 +23,28 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [loading, setLoading] = useState(false);
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const next = searchParams.get("next") || "/dashboard";
+  const claimEventId = searchParams.get("claim");
+
+  // Claim guest captures + redirect after auth
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      if (claimEventId) {
+        const guestIdent = localStorage.getItem(`pov_guest_${claimEventId}`);
+        if (guestIdent) {
+          await supabase.from("event_guests")
+            .update({ claimed_by_user_id: user.id })
+            .eq("event_id", claimEventId)
+            .eq("guest_identifier", guestIdent);
+        }
+      }
+      navigate(next);
+    })();
+  }, [user, claimEventId, next, navigate]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -36,7 +57,7 @@ export default function LoginPage() {
       } else {
         const { error } = await signIn(email, password);
         if (error) throw error;
-        navigate("/dashboard");
+        // Navigation handled by useEffect
       }
     } catch (err: any) {
       toast({ title: "Error", description: err.message, variant: "destructive" });

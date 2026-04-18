@@ -3,12 +3,14 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import ThemeToggle from "@/components/ThemeToggle";
+import TrialBanner from "@/components/TrialBanner";
 
 export default function Navbar() {
   const { user, signOut, profile } = useAuth();
 
   return (
     <nav className="fixed top-0 w-full z-50 glass-card border-b border-border/30">
+      <TrialBanner />
       <div className="container flex items-center justify-between h-16 px-4">
         <Link to="/" className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-gradient-warm flex items-center justify-center">

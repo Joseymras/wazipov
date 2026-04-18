@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       event_guests: {
         Row: {
+          claimed_by_user_id: string | null
           created_at: string
           event_id: string
           guest_identifier: string
@@ -24,6 +25,7 @@ export type Database = {
           snaps_remaining: number
         }
         Insert: {
+          claimed_by_user_id?: string | null
           created_at?: string
           event_id: string
           guest_identifier: string
@@ -32,6 +34,7 @@ export type Database = {
           snaps_remaining?: number
         }
         Update: {
+          claimed_by_user_id?: string | null
           created_at?: string
           event_id?: string
           guest_identifier?: string
@@ -154,6 +157,7 @@ export type Database = {
           id: string
           is_flagged: boolean
           is_revealed: boolean
+          media_type: string
           mood_tag: string | null
           storage_path: string
           thumbnail_path: string | null
@@ -166,6 +170,7 @@ export type Database = {
           id?: string
           is_flagged?: boolean
           is_revealed?: boolean
+          media_type?: string
           mood_tag?: string | null
           storage_path: string
           thumbnail_path?: string | null
@@ -178,6 +183,7 @@ export type Database = {
           id?: string
           is_flagged?: boolean
           is_revealed?: boolean
+          media_type?: string
           mood_tag?: string | null
           storage_path?: string
           thumbnail_path?: string | null
@@ -202,31 +208,40 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          country_code: string | null
           created_at: string
           display_name: string | null
           id: string
+          preferred_currency: string | null
           referral_code: string | null
           subscription_tier: Database["public"]["Enums"]["subscription_tier"]
+          trial_ends_at: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           avatar_url?: string | null
+          country_code?: string | null
           created_at?: string
           display_name?: string | null
           id?: string
+          preferred_currency?: string | null
           referral_code?: string | null
           subscription_tier?: Database["public"]["Enums"]["subscription_tier"]
+          trial_ends_at?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           avatar_url?: string | null
+          country_code?: string | null
           created_at?: string
           display_name?: string | null
           id?: string
+          preferred_currency?: string | null
           referral_code?: string | null
           subscription_tier?: Database["public"]["Enums"]["subscription_tier"]
+          trial_ends_at?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -271,6 +286,8 @@ export type Database = {
           provider: string
           reference: string | null
           status: string
+          stripe_customer_id: string | null
+          stripe_session_id: string | null
           tier: Database["public"]["Enums"]["subscription_tier"]
           updated_at: string
           user_id: string
@@ -286,6 +303,8 @@ export type Database = {
           provider?: string
           reference?: string | null
           status?: string
+          stripe_customer_id?: string | null
+          stripe_session_id?: string | null
           tier?: Database["public"]["Enums"]["subscription_tier"]
           updated_at?: string
           user_id: string
@@ -301,6 +320,8 @@ export type Database = {
           provider?: string
           reference?: string | null
           status?: string
+          stripe_customer_id?: string | null
+          stripe_session_id?: string | null
           tier?: Database["public"]["Enums"]["subscription_tier"]
           updated_at?: string
           user_id?: string

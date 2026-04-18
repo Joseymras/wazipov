@@ -20,6 +20,9 @@ interface Profile {
   avatar_url: string | null;
   referral_code: string | null;
   subscription_tier: "free" | "starter" | "pro" | "platinum";
+  trial_ends_at: string | null;
+  preferred_currency: string | null;
+  country_code: string | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
