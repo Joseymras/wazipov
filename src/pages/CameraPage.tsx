@@ -25,6 +25,15 @@ const FILTERS: { id: Filter; label: string; css: string }[] = [
 
 const EMOJI_LIB = ["✨", "🎉", "❤️", "🔥", "😎", "🥳", "💖", "🌟", "🎂", "💍", "🎊", "🌹", "🦋", "💫", "🍾", "🎵"];
 
+const BACKDROPS: { id: string; label: string; src: string | null }[] = [
+  { id: "off", label: "Off", src: null },
+  { id: "beach", label: "Beach", src: "https://images.pexels.com/photos/1032650/pexels-photo-1032650.jpeg?auto=compress&w=800" },
+  { id: "stage", label: "Stage", src: "https://images.pexels.com/photos/1763075/pexels-photo-1763075.jpeg?auto=compress&w=800" },
+  { id: "neon", label: "Neon", src: "https://images.pexels.com/photos/2447042/pexels-photo-2447042.jpeg?auto=compress&w=800" },
+  { id: "city", label: "City", src: "https://images.pexels.com/photos/1519088/pexels-photo-1519088.jpeg?auto=compress&w=800" },
+  { id: "studio", label: "Studio", src: "https://images.pexels.com/photos/1779487/pexels-photo-1779487.jpeg?auto=compress&w=800" },
+];
+
 interface Sticker { id: string; emoji: string; x: number; y: number; size: number; }
 
 // Play a soft shutter sound via WebAudio (no external file needed)
