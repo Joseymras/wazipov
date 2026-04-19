@@ -269,7 +269,7 @@ export default function CameraPage() {
     const canvas = canvasRef.current;
     canvas.width = video.videoWidth; canvas.height = video.videoHeight;
     const ctx = canvas.getContext("2d")!;
-    drawFrame(ctx, video);
+    await drawFrame(ctx, video);
     const blob = await new Promise<Blob>((r) => canvas.toBlob(b => r(b!), "image/jpeg", 0.88));
     setLastCaptureUrl(URL.createObjectURL(blob));
     setTimeout(() => setLastCaptureUrl(null), 2000);
@@ -289,7 +289,7 @@ export default function CameraPage() {
     toast({ title: "Capturing GIF...", description: "Hold still for 1 second" });
     for (let i = 0; i < 6; i++) {
       playShutter();
-      drawFrame(ctx, video);
+      await drawFrame(ctx, video);
       frames.push(ctx.getImageData(0, 0, W, H));
       await new Promise(r => setTimeout(r, 180));
     }
@@ -311,7 +311,7 @@ export default function CameraPage() {
     const frames: ImageData[] = [];
     toast({ title: "Recording boomerang..." });
     for (let i = 0; i < 12; i++) {
-      drawFrame(ctx, video);
+      await drawFrame(ctx, video);
       frames.push(ctx.getImageData(0, 0, W, H));
       await new Promise(r => setTimeout(r, 70));
     }
@@ -323,18 +323,32 @@ export default function CameraPage() {
     await uploadBlob(blob, "gif", "boomerang");
   }
 
-  function startVideoRecording() {
+  async function startVideoRecording() {
     if (!streamRef.current) return;
     if (advancedLocked) { setShowUpgrade(true); return; }
     recordedChunks.current = [];
     const mime = MediaRecorder.isTypeSupported("video/webm;codecs=vp9,opus")
       ? "video/webm;codecs=vp9,opus" : "video/webm";
-    const recorder = new MediaRecorder(streamRef.current, { mimeType: mime });
+
+    // Mix in soundtrack if selected
+    const track = soundtracks.find(s => s.id === soundtrackId);
+    let recordStream: MediaStream = streamRef.current;
+    if (track && allowMusic) {
+      try {
+        const mixed = await buildMixedStream(streamRef.current, track.url, true);
+        recordStream = mixed.stream;
+        audioCleanupRef.current = mixed.cleanup;
+      } catch (e) { console.warn("Mix failed", e); }
+    }
+
+    const recorder = new MediaRecorder(recordStream, { mimeType: mime });
     recorder.ondataavailable = (e) => { if (e.data.size > 0) recordedChunks.current.push(e.data); };
     recorder.onstop = async () => {
       const blob = new Blob(recordedChunks.current, { type: mime });
       setLastCaptureUrl(URL.createObjectURL(blob));
       setTimeout(() => setLastCaptureUrl(null), 2500);
+      audioCleanupRef.current?.();
+      audioCleanupRef.current = null;
       await uploadBlob(blob, "webm", "video");
     };
     recorder.start();
