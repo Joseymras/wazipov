@@ -182,14 +182,52 @@ export default function CameraPage() {
     }
   }
 
-  function drawFrame(ctx: CanvasRenderingContext2D, video: HTMLVideoElement, withStickers = true) {
+  async function drawFrame(ctx: CanvasRenderingContext2D, video: HTMLVideoElement, withStickers = true) {
     const w = ctx.canvas.width, h = ctx.canvas.height;
     const filterCss = FILTERS.find(f => f.id === filter)?.css || "none";
-    ctx.filter = filterCss;
-    if (facingMode === "user") { ctx.translate(w, 0); ctx.scale(-1, 1); }
-    ctx.drawImage(video, 0, 0, w, h);
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.filter = "none";
+    const useBackdrop = backdropId !== "off" && backdropImgRef.current && allowGreenscreen;
+
+    if (useBackdrop) {
+      // Run segmentation on a downscaled copy for performance
+      const seg = await getSegmenter();
+      let mask: Uint8Array | null = null;
+      if (seg) {
+        try {
+          const result = seg.segmentForVideo(video, performance.now());
+          const cat = result.categoryMask;
+          const arr = cat.getAsUint8Array();
+          // The segmenter's mask resolution may differ; resample by drawing
+          const maskCanvas = document.createElement("canvas");
+          maskCanvas.width = cat.width; maskCanvas.height = cat.height;
+          const mctx = maskCanvas.getContext("2d")!;
+          const id = mctx.createImageData(cat.width, cat.height);
+          for (let i = 0, p = 0; i < arr.length; i++, p += 4) {
+            const v = arr[i] !== 0 ? 255 : 0;
+            id.data[p] = v; id.data[p + 1] = v; id.data[p + 2] = v; id.data[p + 3] = 255;
+          }
+          mctx.putImageData(id, 0, 0);
+          // Resample to target resolution
+          const big = document.createElement("canvas");
+          big.width = w; big.height = h;
+          const bctx = big.getContext("2d")!;
+          bctx.drawImage(maskCanvas, 0, 0, w, h);
+          const data = bctx.getImageData(0, 0, w, h).data;
+          mask = new Uint8Array(w * h);
+          for (let i = 0, p = 0; i < mask.length; i++, p += 4) mask[i] = data[p] > 127 ? 255 : 0;
+          cat.close?.();
+        } catch (e) { console.warn("seg err", e); }
+      }
+      ctx.filter = filterCss;
+      compositeWithBackground(ctx, video, mask, w, h, backdropImgRef.current!, facingMode === "user");
+      ctx.filter = "none";
+    } else {
+      ctx.filter = filterCss;
+      if (facingMode === "user") { ctx.translate(w, 0); ctx.scale(-1, 1); }
+      ctx.drawImage(video, 0, 0, w, h);
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.filter = "none";
+    }
+
     if (withStickers) {
       stickers.forEach(s => {
         ctx.font = `${s.size}px serif`;
