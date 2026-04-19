@@ -23,6 +23,8 @@ interface Profile {
   trial_ends_at: string | null;
   preferred_currency: string | null;
   country_code: string | null;
+  onboarded?: boolean;
+  trial_tier?: string;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
