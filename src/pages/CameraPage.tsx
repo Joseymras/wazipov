@@ -114,6 +114,23 @@ export default function CameraPage() {
     return () => clearInterval(id);
   }, [recording]);
 
+  // Load soundtracks library once
+  useEffect(() => {
+    supabase.from("soundtracks").select("id,title,mood,url").then(({ data }) => {
+      if (data) setSoundtracks(data);
+    });
+  }, []);
+
+  // Preload backdrop image
+  useEffect(() => {
+    const b = BACKDROPS.find(x => x.id === backdropId);
+    if (!b?.src) { backdropImgRef.current = null; return; }
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.src = b.src;
+    img.onload = () => { backdropImgRef.current = img; };
+  }, [backdropId]);
+
   async function loadEvent() {
     if (!eventId || eventId === "demo") {
       setEventName("Demo Camera"); setSnapsLeft(10); setMaxSnaps(10);
