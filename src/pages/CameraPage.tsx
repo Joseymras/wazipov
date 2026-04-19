@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Camera, X, Aperture, SwitchCamera, Sparkles, Zap, ZapOff, Video, Square, Smile, Image as ImageIcon, Loader2 } from "lucide-react";
+import { Camera, X, Aperture, SwitchCamera, Sparkles, Zap, ZapOff, Video, Square, Smile, Image as ImageIcon, Loader2, Wand2, Music } from "lucide-react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -8,6 +8,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useTrial } from "@/hooks/useTrial";
 import UpgradeModal from "@/components/UpgradeModal";
 import { encodeGIF } from "@/lib/gif";
+import { getSegmenter, compositeWithBackground } from "@/lib/segmenter";
+import { buildMixedStream } from "@/lib/audioMix";
 
 type Filter = "disposable" | "bw" | "sepia" | "vintage" | "glam" | "none";
 type Mode = "photo" | "video" | "boomerang" | "gif";

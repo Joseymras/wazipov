@@ -117,7 +117,7 @@ export default function LoginPage() {
               </button>
             </div>
           </div>
-          <Button variant="hero" size="lg" className="w-full" type="submit" disabled={loading}>
+          <Button size="lg" className="w-full rounded-full" type="submit" disabled={loading}>
             {loading ? "Loading..." : isSignUp ? "Create Account" : "Sign In"} <ArrowRight className="w-4 h-4" />
           </Button>
         </motion.form>
