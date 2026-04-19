@@ -488,8 +488,13 @@ export default function CameraPage() {
       {/* Viewfinder */}
       <div className="flex-1 w-full max-w-lg px-4 flex items-center justify-center">
         <div ref={containerRef} className="relative w-full aspect-[3/4] rounded-2xl overflow-hidden bg-foreground/20 border border-background/10">
+          {/* Background plate when green-screen active */}
+          {backdropId !== "off" && allowGreenscreen && (
+            <img src={BACKDROPS.find(b => b.id === backdropId)?.src || ""} alt=""
+              className="absolute inset-0 w-full h-full object-cover" />
+          )}
           <video ref={videoRef} autoPlay playsInline muted
-            className={`absolute inset-0 w-full h-full object-cover ${facingMode === "user" ? "scale-x-[-1]" : ""}`}
+            className={`absolute inset-0 w-full h-full object-cover ${facingMode === "user" ? "scale-x-[-1]" : ""} ${backdropId !== "off" && allowGreenscreen ? "mix-blend-screen opacity-90" : ""}`}
             style={{ filter: filterCss }} />
 
           {/* Sticker overlays */}
@@ -514,7 +519,6 @@ export default function CameraPage() {
           {["-top-px -left-px", "-top-px -right-px", "-bottom-px -left-px", "-bottom-px -right-px"].map((pos, i) => (
             <div key={i} className={`absolute ${pos} w-8 h-8 border-background/30 ${i < 2 ? "border-t-2" : "border-b-2"} ${i % 2 === 0 ? "border-l-2" : "border-r-2"}`} />
           ))}
-          <div className="absolute inset-0 opacity-[0.04] pointer-events-none" style={{ backgroundImage: "var(--film-grain)" }} />
           {uploading && (
             <div className="absolute top-4 right-4 bg-background/80 rounded-full px-3 py-1 text-xs font-medium text-foreground flex items-center gap-1">
               <Loader2 className="w-3 h-3 animate-spin" /> Saving...
@@ -567,7 +571,63 @@ export default function CameraPage() {
             }`}>
             <Smile className="w-3 h-3" /> Emoji
           </button>
+          {allowGreenscreen && (
+            <button onClick={() => setShowBackdrops(s => !s)}
+              className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-1 transition-all ${
+                showBackdrops || backdropId !== "off" ? "bg-secondary text-secondary-foreground" : "bg-background/10 text-background/70"
+              }`}>
+              <Wand2 className="w-3 h-3" /> Backdrop
+            </button>
+          )}
+          {allowMusic && (mode === "video" || mode === "boomerang") && soundtracks.length > 0 && (
+            <button onClick={() => setShowMusic(s => !s)}
+              className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-1 transition-all ${
+                showMusic || soundtrackId ? "bg-secondary text-secondary-foreground" : "bg-background/10 text-background/70"
+              }`}>
+              <Music className="w-3 h-3" /> {soundtrackId ? "♪ On" : "Music"}
+            </button>
+          )}
         </div>
+
+        {/* Backdrop picker */}
+        <AnimatePresence>
+          {showBackdrops && (
+            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 20, opacity: 0 }}
+              className="max-w-lg mx-auto bg-background/95 backdrop-blur rounded-2xl p-3 flex gap-2 overflow-x-auto">
+              {BACKDROPS.map(b => (
+                <button key={b.id} onClick={() => { setBackdropId(b.id); setShowBackdrops(false); }}
+                  className={`shrink-0 rounded-xl overflow-hidden border-2 ${backdropId === b.id ? "border-primary" : "border-transparent"}`}>
+                  {b.src ? (
+                    <img src={b.src} alt={b.label} className="w-16 h-16 object-cover" />
+                  ) : (
+                    <div className="w-16 h-16 bg-muted flex items-center justify-center text-xs">Off</div>
+                  )}
+                  <p className="text-[10px] text-center py-0.5">{b.label}</p>
+                </button>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Music picker */}
+        <AnimatePresence>
+          {showMusic && (
+            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 20, opacity: 0 }}
+              className="max-w-lg mx-auto bg-background/95 backdrop-blur rounded-2xl p-3 max-h-48 overflow-y-auto">
+              <button onClick={() => { setSoundtrackId(null); setShowMusic(false); }}
+                className={`w-full text-left p-2 rounded-lg text-xs ${!soundtrackId ? "bg-secondary" : ""}`}>
+                ✕ No music
+              </button>
+              {soundtracks.map(s => (
+                <button key={s.id} onClick={() => { setSoundtrackId(s.id); setShowMusic(false); }}
+                  className={`w-full text-left p-2 rounded-lg text-xs flex justify-between ${soundtrackId === s.id ? "bg-secondary" : ""}`}>
+                  <span>♪ {s.title}</span>
+                  <span className="text-muted-foreground">{s.mood}</span>
+                </button>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Emoji picker */}
         <AnimatePresence>
