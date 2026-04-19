@@ -99,17 +99,23 @@ export type Database = {
       }
       events: {
         Row: {
+          allow_greenscreen: boolean
+          allow_music: boolean
           allow_video: boolean
+          city: string | null
           countdown_seconds: number
+          country: string | null
           cover_photo_url: string | null
           created_at: string
           description: string | null
           event_date: string | null
+          featured_image_url: string | null
           filter_preset: string
           gallery_type: Database["public"]["Enums"]["gallery_type"]
           host_id: string
           id: string
           is_active: boolean
+          is_public: boolean
           name: string
           qr_code_url: string | null
           reveal_date: string | null
@@ -117,23 +123,31 @@ export type Database = {
           scavenger_prompts: string[] | null
           short_link: string | null
           snaps_per_guest: number
+          soundtrack_id: string | null
           theme_color: string | null
           updated_at: string
+          use_case: string
           watermark_enabled: boolean
           welcome_message: string | null
         }
         Insert: {
+          allow_greenscreen?: boolean
+          allow_music?: boolean
           allow_video?: boolean
+          city?: string | null
           countdown_seconds?: number
+          country?: string | null
           cover_photo_url?: string | null
           created_at?: string
           description?: string | null
           event_date?: string | null
+          featured_image_url?: string | null
           filter_preset?: string
           gallery_type?: Database["public"]["Enums"]["gallery_type"]
           host_id: string
           id?: string
           is_active?: boolean
+          is_public?: boolean
           name: string
           qr_code_url?: string | null
           reveal_date?: string | null
@@ -141,23 +155,31 @@ export type Database = {
           scavenger_prompts?: string[] | null
           short_link?: string | null
           snaps_per_guest?: number
+          soundtrack_id?: string | null
           theme_color?: string | null
           updated_at?: string
+          use_case?: string
           watermark_enabled?: boolean
           welcome_message?: string | null
         }
         Update: {
+          allow_greenscreen?: boolean
+          allow_music?: boolean
           allow_video?: boolean
+          city?: string | null
           countdown_seconds?: number
+          country?: string | null
           cover_photo_url?: string | null
           created_at?: string
           description?: string | null
           event_date?: string | null
+          featured_image_url?: string | null
           filter_preset?: string
           gallery_type?: Database["public"]["Enums"]["gallery_type"]
           host_id?: string
           id?: string
           is_active?: boolean
+          is_public?: boolean
           name?: string
           qr_code_url?: string | null
           reveal_date?: string | null
@@ -165,8 +187,10 @@ export type Database = {
           scavenger_prompts?: string[] | null
           short_link?: string | null
           snaps_per_guest?: number
+          soundtrack_id?: string | null
           theme_color?: string | null
           updated_at?: string
+          use_case?: string
           watermark_enabled?: boolean
           welcome_message?: string | null
         }
@@ -192,6 +216,53 @@ export type Database = {
           photo_id?: string
         }
         Relationships: []
+      }
+      photobooks: {
+        Row: {
+          cover_url: string | null
+          created_at: string
+          event_id: string
+          host_id: string
+          id: string
+          page_size: string
+          spreads: Json
+          template: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          cover_url?: string | null
+          created_at?: string
+          event_id: string
+          host_id: string
+          id?: string
+          page_size?: string
+          spreads?: Json
+          template?: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          cover_url?: string | null
+          created_at?: string
+          event_id?: string
+          host_id?: string
+          id?: string
+          page_size?: string
+          spreads?: Json
+          template?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "photobooks_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       photos: {
         Row: {
@@ -275,10 +346,12 @@ export type Database = {
           created_at: string
           display_name: string | null
           id: string
+          onboarded: boolean
           preferred_currency: string | null
           referral_code: string | null
           subscription_tier: Database["public"]["Enums"]["subscription_tier"]
           trial_ends_at: string | null
+          trial_tier: string
           updated_at: string
           user_id: string
         }
@@ -288,10 +361,12 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           id?: string
+          onboarded?: boolean
           preferred_currency?: string | null
           referral_code?: string | null
           subscription_tier?: Database["public"]["Enums"]["subscription_tier"]
           trial_ends_at?: string | null
+          trial_tier?: string
           updated_at?: string
           user_id: string
         }
@@ -301,10 +376,12 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           id?: string
+          onboarded?: boolean
           preferred_currency?: string | null
           referral_code?: string | null
           subscription_tier?: Database["public"]["Enums"]["subscription_tier"]
           trial_ends_at?: string | null
+          trial_tier?: string
           updated_at?: string
           user_id?: string
         }
@@ -334,6 +411,39 @@ export type Database = {
           id?: string
           referred_id?: string
           referrer_id?: string
+        }
+        Relationships: []
+      }
+      soundtracks: {
+        Row: {
+          artist: string
+          created_at: string
+          duration_seconds: number
+          id: string
+          license: string
+          mood: string
+          title: string
+          url: string
+        }
+        Insert: {
+          artist?: string
+          created_at?: string
+          duration_seconds?: number
+          id: string
+          license?: string
+          mood: string
+          title: string
+          url: string
+        }
+        Update: {
+          artist?: string
+          created_at?: string
+          duration_seconds?: number
+          id?: string
+          license?: string
+          mood?: string
+          title?: string
+          url?: string
         }
         Relationships: []
       }

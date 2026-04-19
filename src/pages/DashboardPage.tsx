@@ -1,159 +1,99 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Camera, Plus, CalendarDays, Users, Image, Trash2, Edit, Eye, QrCode } from "lucide-react";
+import { Plus, Camera, Calendar, Users, Image as ImageIcon, ArrowRight, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import Navbar from "@/components/Navbar";
-import { toast } from "@/hooks/use-toast";
-
-const fadeUp = {
-  hidden: { opacity: 0, y: 20 },
-  visible: (i: number) => ({
-    opacity: 1, y: 0,
-    transition: { delay: i * 0.1, duration: 0.5, ease: [0.22, 1, 0.36, 1] as const },
-  }),
-};
-
-interface Event {
-  id: string;
-  name: string;
-  event_date: string | null;
-  snaps_per_guest: number;
-  is_active: boolean;
-  theme_color: string | null;
-  short_link: string | null;
-  reveal_timing: string;
-  gallery_type: string;
-}
+import DashboardLayout from "@/components/DashboardLayout";
 
 export default function DashboardPage() {
-  const { user } = useAuth();
-  const navigate = useNavigate();
-  const [events, setEvents] = useState<Event[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({ events: 0, guests: 0, photos: 0 });
+  const { user, profile } = useAuth();
+  const [stats, setStats] = useState({ events: 0, guests: 0, photos: 0, photobooks: 0 });
+  const [recent, setRecent] = useState<any[]>([]);
 
-  useEffect(() => {
-    if (user) loadData();
-  }, [user]);
+  useEffect(() => { if (user) load(); }, [user]);
 
-  async function loadData() {
-    const { data: evts } = await supabase
-      .from("events")
-      .select("*")
-      .eq("host_id", user!.id)
-      .order("created_at", { ascending: false });
-
-    if (evts) {
-      setEvents(evts);
-      setStats(s => ({ ...s, events: evts.length }));
-
-      const eventIds = evts.map(e => e.id);
-      if (eventIds.length > 0) {
-        const { count: guestCount } = await supabase
-          .from("event_guests")
-          .select("*", { count: "exact", head: true })
-          .in("event_id", eventIds);
-
-        const { count: photoCount } = await supabase
-          .from("photos")
-          .select("*", { count: "exact", head: true })
-          .in("event_id", eventIds);
-
-        setStats({ events: evts.length, guests: guestCount || 0, photos: photoCount || 0 });
-      }
-    }
-    setLoading(false);
-  }
-
-  async function deleteEvent(id: string) {
-    if (!confirm("Delete this event? This cannot be undone.")) return;
-    await supabase.from("events").delete().eq("id", id);
-    setEvents(prev => prev.filter(e => e.id !== id));
-    toast({ title: "Event deleted" });
+  async function load() {
+    if (!user) return;
+    const { data: evts } = await supabase.from("events").select("*").eq("host_id", user.id).order("created_at", { ascending: false }).limit(4);
+    const ids = (evts || []).map(e => e.id);
+    const [g, p, b] = await Promise.all([
+      ids.length ? supabase.from("event_guests").select("*", { count: "exact", head: true }).in("event_id", ids) : Promise.resolve({ count: 0 }),
+      ids.length ? supabase.from("photos").select("*", { count: "exact", head: true }).in("event_id", ids) : Promise.resolve({ count: 0 }),
+      supabase.from("photobooks").select("*", { count: "exact", head: true }).eq("host_id", user.id),
+    ]);
+    setStats({ events: evts?.length || 0, guests: (g as any).count || 0, photos: (p as any).count || 0, photobooks: (b as any).count || 0 });
+    setRecent(evts || []);
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-      <div className="pt-24 pb-12 px-4">
-        <div className="container max-w-5xl mx-auto">
-          <motion.div initial="hidden" animate="visible" className="flex items-center justify-between mb-8">
-            <motion.div variants={fadeUp} custom={0}>
-              <h1 className="font-heading text-3xl font-bold text-foreground">Your Events</h1>
-              <p className="text-muted-foreground mt-1">Manage your POV moments</p>
-            </motion.div>
-            <motion.div variants={fadeUp} custom={1}>
-              <Button variant="hero" size="lg" onClick={() => navigate("/events/new")}>
-                <Plus className="w-5 h-5" /> New Event
-              </Button>
-            </motion.div>
-          </motion.div>
+    <DashboardLayout title="Overview">
+      <div className="p-6 space-y-8 max-w-6xl mx-auto">
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 className="font-heading text-2xl md:text-3xl font-bold">Welcome back{profile?.display_name ? `, ${profile.display_name.split(" ")[0]}` : ""} 👋</h1>
+            <p className="text-muted-foreground text-sm mt-1">Here's what's happening across your events.</p>
+          </div>
+          <Button asChild className="rounded-full">
+            <Link to="/events/new"><Plus className="w-4 h-4" /> New event</Link>
+          </Button>
+        </motion.div>
 
-          <motion.div initial="hidden" animate="visible" className="grid grid-cols-3 gap-4 mb-8">
-            {[
-              { label: "Total Events", value: stats.events.toString(), icon: CalendarDays },
-              { label: "Total Guests", value: stats.guests.toLocaleString(), icon: Users },
-              { label: "Photos Captured", value: stats.photos.toLocaleString(), icon: Image },
-            ].map((stat, i) => (
-              <motion.div key={i} variants={fadeUp} custom={i + 2} className="glass-card rounded-2xl p-5 text-center">
-                <stat.icon className="w-5 h-5 text-primary mx-auto mb-2" />
-                <p className="font-heading text-2xl font-bold text-foreground">{stat.value}</p>
-                <p className="text-xs text-muted-foreground">{stat.label}</p>
-              </motion.div>
-            ))}
-          </motion.div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {[
+            { label: "Events", value: stats.events, icon: Calendar },
+            { label: "Guests", value: stats.guests, icon: Users },
+            { label: "Captures", value: stats.photos, icon: ImageIcon },
+            { label: "Photobooks", value: stats.photobooks, icon: BookOpen },
+          ].map(s => (
+            <div key={s.label} className="rounded-2xl border border-border bg-card p-4">
+              <s.icon className="w-4 h-4 text-muted-foreground mb-2" />
+              <p className="font-heading text-2xl font-bold">{s.value}</p>
+              <p className="text-xs text-muted-foreground">{s.label}</p>
+            </div>
+          ))}
+        </div>
 
-          {loading ? (
-            <div className="text-center py-12 text-muted-foreground">Loading events...</div>
-          ) : events.length === 0 ? (
-            <div className="text-center py-16 space-y-4">
-              <Camera className="w-12 h-12 text-muted-foreground mx-auto" />
-              <p className="text-lg text-muted-foreground">No events yet</p>
-              <Button variant="hero" onClick={() => navigate("/events/new")}>
-                <Plus className="w-5 h-5" /> Create Your First Event
-              </Button>
+        <section className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="font-heading text-lg font-semibold">Recent events</h2>
+            <Link to="/dashboard/events" className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1">
+              View all <ArrowRight className="w-3 h-3" />
+            </Link>
+          </div>
+          {recent.length === 0 ? (
+            <div className="border border-dashed border-border rounded-2xl p-10 text-center space-y-3">
+              <Camera className="w-8 h-8 mx-auto text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">No events yet.</p>
+              <Button asChild variant="outline" className="rounded-full"><Link to="/events/new">Create your first event</Link></Button>
             </div>
           ) : (
-            <div className="space-y-4">
-              {events.map((event, i) => (
-                <motion.div key={event.id} initial="hidden" animate="visible" variants={fadeUp} custom={i + 5}
-                  className="glass-card rounded-2xl overflow-hidden hover:shadow-lg transition-shadow"
-                >
-                  <div className="flex items-center gap-4 p-5">
-                    <div className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0"
-                      style={{ background: `linear-gradient(135deg, ${event.theme_color || '#e85d3a'}, hsl(340 65% 55%))` }}>
-                      <Camera className="w-6 h-6 text-primary-foreground" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-heading font-semibold text-foreground truncate">{event.name}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {event.event_date ? new Date(event.event_date).toLocaleDateString() : "No date set"}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button variant="ghost" size="icon" asChild>
-                        <Link to={`/events/${event.id}/qr`}><QrCode className="w-4 h-4" /></Link>
-                      </Button>
-                      <Button variant="ghost" size="icon" asChild>
-                        <Link to={`/events/${event.id}/gallery`}><Eye className="w-4 h-4" /></Link>
-                      </Button>
-                      <Button variant="ghost" size="icon" asChild>
-                        <Link to={`/events/${event.id}/edit`}><Edit className="w-4 h-4" /></Link>
-                      </Button>
-                      <Button variant="ghost" size="icon" onClick={() => deleteEvent(event.id)}>
-                        <Trash2 className="w-4 h-4 text-destructive" />
-                      </Button>
-                    </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {recent.map(e => (
+                <Link key={e.id} to={`/events/${e.id}/edit`}
+                  className="group border border-border rounded-2xl overflow-hidden bg-card hover:border-foreground transition-colors">
+                  <div className="aspect-video bg-secondary relative overflow-hidden">
+                    {e.featured_image_url ? (
+                      <img src={e.featured_image_url} alt={e.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                        <Camera className="w-8 h-8" />
+                      </div>
+                    )}
                   </div>
-                </motion.div>
+                  <div className="p-4">
+                    <p className="font-semibold truncate">{e.name}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {e.event_date ? new Date(e.event_date).toLocaleDateString() : "No date"} · {e.use_case}
+                    </p>
+                  </div>
+                </Link>
               ))}
             </div>
           )}
-        </div>
+        </section>
       </div>
-    </div>
+    </DashboardLayout>
   );
 }

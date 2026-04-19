@@ -28,6 +28,10 @@ export default function EventFormPage() {
   const [revealDate, setRevealDate] = useState("");
   const [galleryType, setGalleryType] = useState<GalleryType>("shared");
   const [scavengerPrompts, setScavengerPrompts] = useState("");
+  const [city, setCity] = useState("");
+  const [isPublic, setIsPublic] = useState(false);
+  const [featuredFile, setFeaturedFile] = useState<File | null>(null);
+  const [featuredUrl, setFeaturedUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
