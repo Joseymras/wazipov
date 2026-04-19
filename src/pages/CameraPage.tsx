@@ -85,6 +85,15 @@ export default function CameraPage() {
   const [showEmojis, setShowEmojis] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [lastCaptureUrl, setLastCaptureUrl] = useState<string | null>(null);
+  const [backdropId, setBackdropId] = useState("off");
+  const [showBackdrops, setShowBackdrops] = useState(false);
+  const [soundtracks, setSoundtracks] = useState<{ id: string; title: string; mood: string; url: string }[]>([]);
+  const [soundtrackId, setSoundtrackId] = useState<string | null>(null);
+  const [showMusic, setShowMusic] = useState(false);
+  const [allowMusic, setAllowMusic] = useState(true);
+  const [allowGreenscreen, setAllowGreenscreen] = useState(true);
+  const backdropImgRef = useRef<HTMLImageElement | null>(null);
+  const audioCleanupRef = useRef<(() => void) | null>(null);
 
   // Restrict advanced modes for expired-trial guests who are owners
   const advancedLocked = user && trial.isExpired;
