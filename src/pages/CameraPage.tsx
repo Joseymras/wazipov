@@ -143,6 +143,9 @@ export default function CameraPage() {
     setEventName(event.name);
     setMaxSnaps(event.snaps_per_guest);
     setFilter((event.filter_preset as Filter) || "disposable");
+    setAllowMusic(event.allow_music ?? true);
+    setAllowGreenscreen(event.allow_greenscreen ?? true);
+    if (event.soundtrack_id) setSoundtrackId(event.soundtrack_id);
     if (event.welcome_message) {
       setWelcomeMsg(event.welcome_message);
       setTimeout(() => setWelcomeMsg(null), 4000);
