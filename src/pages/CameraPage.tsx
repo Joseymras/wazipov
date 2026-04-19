@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Camera, X, Aperture, SwitchCamera, Sparkles, Zap, ZapOff, Video, Square, Smile, Image as ImageIcon, Loader2 } from "lucide-react";
+import { Camera, X, Aperture, SwitchCamera, Sparkles, Zap, ZapOff, Video, Square, Smile, Image as ImageIcon, Loader2, Wand2, Music } from "lucide-react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -8,6 +8,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useTrial } from "@/hooks/useTrial";
 import UpgradeModal from "@/components/UpgradeModal";
 import { encodeGIF } from "@/lib/gif";
+import { getSegmenter, compositeWithBackground } from "@/lib/segmenter";
+import { buildMixedStream } from "@/lib/audioMix";
 
 type Filter = "disposable" | "bw" | "sepia" | "vintage" | "glam" | "none";
 type Mode = "photo" | "video" | "boomerang" | "gif";
@@ -22,6 +24,15 @@ const FILTERS: { id: Filter; label: string; css: string }[] = [
 ];
 
 const EMOJI_LIB = ["✨", "🎉", "❤️", "🔥", "😎", "🥳", "💖", "🌟", "🎂", "💍", "🎊", "🌹", "🦋", "💫", "🍾", "🎵"];
+
+const BACKDROPS: { id: string; label: string; src: string | null }[] = [
+  { id: "off", label: "Off", src: null },
+  { id: "beach", label: "Beach", src: "https://images.pexels.com/photos/1032650/pexels-photo-1032650.jpeg?auto=compress&w=800" },
+  { id: "stage", label: "Stage", src: "https://images.pexels.com/photos/1763075/pexels-photo-1763075.jpeg?auto=compress&w=800" },
+  { id: "neon", label: "Neon", src: "https://images.pexels.com/photos/2447042/pexels-photo-2447042.jpeg?auto=compress&w=800" },
+  { id: "city", label: "City", src: "https://images.pexels.com/photos/1519088/pexels-photo-1519088.jpeg?auto=compress&w=800" },
+  { id: "studio", label: "Studio", src: "https://images.pexels.com/photos/1779487/pexels-photo-1779487.jpeg?auto=compress&w=800" },
+];
 
 interface Sticker { id: string; emoji: string; x: number; y: number; size: number; }
 
@@ -74,6 +85,15 @@ export default function CameraPage() {
   const [showEmojis, setShowEmojis] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [lastCaptureUrl, setLastCaptureUrl] = useState<string | null>(null);
+  const [backdropId, setBackdropId] = useState("off");
+  const [showBackdrops, setShowBackdrops] = useState(false);
+  const [soundtracks, setSoundtracks] = useState<{ id: string; title: string; mood: string; url: string }[]>([]);
+  const [soundtrackId, setSoundtrackId] = useState<string | null>(null);
+  const [showMusic, setShowMusic] = useState(false);
+  const [allowMusic, setAllowMusic] = useState(true);
+  const [allowGreenscreen, setAllowGreenscreen] = useState(true);
+  const backdropImgRef = useRef<HTMLImageElement | null>(null);
+  const audioCleanupRef = useRef<(() => void) | null>(null);
 
   // Restrict advanced modes for expired-trial guests who are owners
   const advancedLocked = user && trial.isExpired;
@@ -94,6 +114,23 @@ export default function CameraPage() {
     return () => clearInterval(id);
   }, [recording]);
 
+  // Load soundtracks library once
+  useEffect(() => {
+    supabase.from("soundtracks").select("id,title,mood,url").then(({ data }) => {
+      if (data) setSoundtracks(data);
+    });
+  }, []);
+
+  // Preload backdrop image
+  useEffect(() => {
+    const b = BACKDROPS.find(x => x.id === backdropId);
+    if (!b?.src) { backdropImgRef.current = null; return; }
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.src = b.src;
+    img.onload = () => { backdropImgRef.current = img; };
+  }, [backdropId]);
+
   async function loadEvent() {
     if (!eventId || eventId === "demo") {
       setEventName("Demo Camera"); setSnapsLeft(10); setMaxSnaps(10);
@@ -106,6 +143,9 @@ export default function CameraPage() {
     setEventName(event.name);
     setMaxSnaps(event.snaps_per_guest);
     setFilter((event.filter_preset as Filter) || "disposable");
+    setAllowMusic(event.allow_music ?? true);
+    setAllowGreenscreen(event.allow_greenscreen ?? true);
+    if (event.soundtrack_id) setSoundtrackId(event.soundtrack_id);
     if (event.welcome_message) {
       setWelcomeMsg(event.welcome_message);
       setTimeout(() => setWelcomeMsg(null), 4000);
@@ -142,14 +182,52 @@ export default function CameraPage() {
     }
   }
 
-  function drawFrame(ctx: CanvasRenderingContext2D, video: HTMLVideoElement, withStickers = true) {
+  async function drawFrame(ctx: CanvasRenderingContext2D, video: HTMLVideoElement, withStickers = true) {
     const w = ctx.canvas.width, h = ctx.canvas.height;
     const filterCss = FILTERS.find(f => f.id === filter)?.css || "none";
-    ctx.filter = filterCss;
-    if (facingMode === "user") { ctx.translate(w, 0); ctx.scale(-1, 1); }
-    ctx.drawImage(video, 0, 0, w, h);
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.filter = "none";
+    const useBackdrop = backdropId !== "off" && backdropImgRef.current && allowGreenscreen;
+
+    if (useBackdrop) {
+      // Run segmentation on a downscaled copy for performance
+      const seg = await getSegmenter();
+      let mask: Uint8Array | null = null;
+      if (seg) {
+        try {
+          const result = seg.segmentForVideo(video, performance.now());
+          const cat = result.categoryMask;
+          const arr = cat.getAsUint8Array();
+          // The segmenter's mask resolution may differ; resample by drawing
+          const maskCanvas = document.createElement("canvas");
+          maskCanvas.width = cat.width; maskCanvas.height = cat.height;
+          const mctx = maskCanvas.getContext("2d")!;
+          const id = mctx.createImageData(cat.width, cat.height);
+          for (let i = 0, p = 0; i < arr.length; i++, p += 4) {
+            const v = arr[i] !== 0 ? 255 : 0;
+            id.data[p] = v; id.data[p + 1] = v; id.data[p + 2] = v; id.data[p + 3] = 255;
+          }
+          mctx.putImageData(id, 0, 0);
+          // Resample to target resolution
+          const big = document.createElement("canvas");
+          big.width = w; big.height = h;
+          const bctx = big.getContext("2d")!;
+          bctx.drawImage(maskCanvas, 0, 0, w, h);
+          const data = bctx.getImageData(0, 0, w, h).data;
+          mask = new Uint8Array(w * h);
+          for (let i = 0, p = 0; i < mask.length; i++, p += 4) mask[i] = data[p] > 127 ? 255 : 0;
+          cat.close?.();
+        } catch (e) { console.warn("seg err", e); }
+      }
+      ctx.filter = filterCss;
+      compositeWithBackground(ctx, video, mask, w, h, backdropImgRef.current!, facingMode === "user");
+      ctx.filter = "none";
+    } else {
+      ctx.filter = filterCss;
+      if (facingMode === "user") { ctx.translate(w, 0); ctx.scale(-1, 1); }
+      ctx.drawImage(video, 0, 0, w, h);
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.filter = "none";
+    }
+
     if (withStickers) {
       stickers.forEach(s => {
         ctx.font = `${s.size}px serif`;
@@ -191,7 +269,7 @@ export default function CameraPage() {
     const canvas = canvasRef.current;
     canvas.width = video.videoWidth; canvas.height = video.videoHeight;
     const ctx = canvas.getContext("2d")!;
-    drawFrame(ctx, video);
+    await drawFrame(ctx, video);
     const blob = await new Promise<Blob>((r) => canvas.toBlob(b => r(b!), "image/jpeg", 0.88));
     setLastCaptureUrl(URL.createObjectURL(blob));
     setTimeout(() => setLastCaptureUrl(null), 2000);
@@ -211,7 +289,7 @@ export default function CameraPage() {
     toast({ title: "Capturing GIF...", description: "Hold still for 1 second" });
     for (let i = 0; i < 6; i++) {
       playShutter();
-      drawFrame(ctx, video);
+      await drawFrame(ctx, video);
       frames.push(ctx.getImageData(0, 0, W, H));
       await new Promise(r => setTimeout(r, 180));
     }
@@ -233,7 +311,7 @@ export default function CameraPage() {
     const frames: ImageData[] = [];
     toast({ title: "Recording boomerang..." });
     for (let i = 0; i < 12; i++) {
-      drawFrame(ctx, video);
+      await drawFrame(ctx, video);
       frames.push(ctx.getImageData(0, 0, W, H));
       await new Promise(r => setTimeout(r, 70));
     }
@@ -245,18 +323,32 @@ export default function CameraPage() {
     await uploadBlob(blob, "gif", "boomerang");
   }
 
-  function startVideoRecording() {
+  async function startVideoRecording() {
     if (!streamRef.current) return;
     if (advancedLocked) { setShowUpgrade(true); return; }
     recordedChunks.current = [];
     const mime = MediaRecorder.isTypeSupported("video/webm;codecs=vp9,opus")
       ? "video/webm;codecs=vp9,opus" : "video/webm";
-    const recorder = new MediaRecorder(streamRef.current, { mimeType: mime });
+
+    // Mix in soundtrack if selected
+    const track = soundtracks.find(s => s.id === soundtrackId);
+    let recordStream: MediaStream = streamRef.current;
+    if (track && allowMusic) {
+      try {
+        const mixed = await buildMixedStream(streamRef.current, track.url, true);
+        recordStream = mixed.stream;
+        audioCleanupRef.current = mixed.cleanup;
+      } catch (e) { console.warn("Mix failed", e); }
+    }
+
+    const recorder = new MediaRecorder(recordStream, { mimeType: mime });
     recorder.ondataavailable = (e) => { if (e.data.size > 0) recordedChunks.current.push(e.data); };
     recorder.onstop = async () => {
       const blob = new Blob(recordedChunks.current, { type: mime });
       setLastCaptureUrl(URL.createObjectURL(blob));
       setTimeout(() => setLastCaptureUrl(null), 2500);
+      audioCleanupRef.current?.();
+      audioCleanupRef.current = null;
       await uploadBlob(blob, "webm", "video");
     };
     recorder.start();
@@ -396,8 +488,13 @@ export default function CameraPage() {
       {/* Viewfinder */}
       <div className="flex-1 w-full max-w-lg px-4 flex items-center justify-center">
         <div ref={containerRef} className="relative w-full aspect-[3/4] rounded-2xl overflow-hidden bg-foreground/20 border border-background/10">
+          {/* Background plate when green-screen active */}
+          {backdropId !== "off" && allowGreenscreen && (
+            <img src={BACKDROPS.find(b => b.id === backdropId)?.src || ""} alt=""
+              className="absolute inset-0 w-full h-full object-cover" />
+          )}
           <video ref={videoRef} autoPlay playsInline muted
-            className={`absolute inset-0 w-full h-full object-cover ${facingMode === "user" ? "scale-x-[-1]" : ""}`}
+            className={`absolute inset-0 w-full h-full object-cover ${facingMode === "user" ? "scale-x-[-1]" : ""} ${backdropId !== "off" && allowGreenscreen ? "mix-blend-screen opacity-90" : ""}`}
             style={{ filter: filterCss }} />
 
           {/* Sticker overlays */}
@@ -422,7 +519,6 @@ export default function CameraPage() {
           {["-top-px -left-px", "-top-px -right-px", "-bottom-px -left-px", "-bottom-px -right-px"].map((pos, i) => (
             <div key={i} className={`absolute ${pos} w-8 h-8 border-background/30 ${i < 2 ? "border-t-2" : "border-b-2"} ${i % 2 === 0 ? "border-l-2" : "border-r-2"}`} />
           ))}
-          <div className="absolute inset-0 opacity-[0.04] pointer-events-none" style={{ backgroundImage: "var(--film-grain)" }} />
           {uploading && (
             <div className="absolute top-4 right-4 bg-background/80 rounded-full px-3 py-1 text-xs font-medium text-foreground flex items-center gap-1">
               <Loader2 className="w-3 h-3 animate-spin" /> Saving...
@@ -475,7 +571,63 @@ export default function CameraPage() {
             }`}>
             <Smile className="w-3 h-3" /> Emoji
           </button>
+          {allowGreenscreen && (
+            <button onClick={() => setShowBackdrops(s => !s)}
+              className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-1 transition-all ${
+                showBackdrops || backdropId !== "off" ? "bg-secondary text-secondary-foreground" : "bg-background/10 text-background/70"
+              }`}>
+              <Wand2 className="w-3 h-3" /> Backdrop
+            </button>
+          )}
+          {allowMusic && (mode === "video" || mode === "boomerang") && soundtracks.length > 0 && (
+            <button onClick={() => setShowMusic(s => !s)}
+              className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-1 transition-all ${
+                showMusic || soundtrackId ? "bg-secondary text-secondary-foreground" : "bg-background/10 text-background/70"
+              }`}>
+              <Music className="w-3 h-3" /> {soundtrackId ? "♪ On" : "Music"}
+            </button>
+          )}
         </div>
+
+        {/* Backdrop picker */}
+        <AnimatePresence>
+          {showBackdrops && (
+            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 20, opacity: 0 }}
+              className="max-w-lg mx-auto bg-background/95 backdrop-blur rounded-2xl p-3 flex gap-2 overflow-x-auto">
+              {BACKDROPS.map(b => (
+                <button key={b.id} onClick={() => { setBackdropId(b.id); setShowBackdrops(false); }}
+                  className={`shrink-0 rounded-xl overflow-hidden border-2 ${backdropId === b.id ? "border-primary" : "border-transparent"}`}>
+                  {b.src ? (
+                    <img src={b.src} alt={b.label} className="w-16 h-16 object-cover" />
+                  ) : (
+                    <div className="w-16 h-16 bg-muted flex items-center justify-center text-xs">Off</div>
+                  )}
+                  <p className="text-[10px] text-center py-0.5">{b.label}</p>
+                </button>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Music picker */}
+        <AnimatePresence>
+          {showMusic && (
+            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 20, opacity: 0 }}
+              className="max-w-lg mx-auto bg-background/95 backdrop-blur rounded-2xl p-3 max-h-48 overflow-y-auto">
+              <button onClick={() => { setSoundtrackId(null); setShowMusic(false); }}
+                className={`w-full text-left p-2 rounded-lg text-xs ${!soundtrackId ? "bg-secondary" : ""}`}>
+                ✕ No music
+              </button>
+              {soundtracks.map(s => (
+                <button key={s.id} onClick={() => { setSoundtrackId(s.id); setShowMusic(false); }}
+                  className={`w-full text-left p-2 rounded-lg text-xs flex justify-between ${soundtrackId === s.id ? "bg-secondary" : ""}`}>
+                  <span>♪ {s.title}</span>
+                  <span className="text-muted-foreground">{s.mood}</span>
+                </button>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Emoji picker */}
         <AnimatePresence>
