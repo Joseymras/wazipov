@@ -64,7 +64,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .select("*")
       .eq("user_id", userId)
       .single();
-    if (data) setProfile(data as Profile);
+    if (data) {
+      setProfile(data as Profile);
+      // Auto-redirect new users to onboarding wizard
+      const path = window.location.pathname;
+      const onAppRoute = path === "/" || path.startsWith("/dashboard");
+      if (data.onboarded === false && onAppRoute) {
+        setTimeout(() => {
+          window.history.pushState({}, "", "/onboarding");
+          window.dispatchEvent(new PopStateEvent("popstate"));
+        }, 50);
+      }
+    }
   }
 
   async function signUp(email: string, password: string, displayName?: string) {

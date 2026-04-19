@@ -67,15 +67,15 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-hero flex items-center justify-center px-4 film-grain">
+    <div className="min-h-screen bg-background flex items-center justify-center px-4">
       <motion.div initial="hidden" animate="visible" className="w-full max-w-md space-y-8">
         <motion.div variants={fadeUp} custom={0} className="text-center space-y-2">
           <Link to="/" className="inline-flex items-center gap-2">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-warm flex items-center justify-center shadow-lg">
-              <Camera className="w-6 h-6 text-primary-foreground" />
+            <div className="w-12 h-12 rounded-2xl bg-foreground flex items-center justify-center">
+              <Camera className="w-6 h-6 text-background" />
             </div>
           </Link>
-          <h1 className="font-heading text-2xl font-bold text-foreground">
+          <h1 className="font-heading text-2xl font-bold">
             {isSignUp ? "Create your account" : "Welcome back"}
           </h1>
           <p className="text-muted-foreground text-sm">
