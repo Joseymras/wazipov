@@ -58,7 +58,7 @@ export default function PhotobookEditorPage() {
 
   async function save() {
     setSaving(true);
-    await supabase.from("photobooks").update({ spreads, title: book.title, template: book.template, page_size: book.page_size }).eq("id", bookId);
+    await supabase.from("photobooks").update({ spreads: spreads as any, title: book.title, template: book.template, page_size: book.page_size }).eq("id", bookId);
     setSaving(false); toast({ title: "Saved" });
   }
 

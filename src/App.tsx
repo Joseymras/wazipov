@@ -9,6 +9,14 @@ import LandingPage from "./pages/LandingPage";
 import PricingPage from "./pages/PricingPage";
 import CameraPage from "./pages/CameraPage";
 import DashboardPage from "./pages/DashboardPage";
+import DashboardEventsPage from "./pages/DashboardEventsPage";
+import DashboardMusicPage from "./pages/DashboardMusicPage";
+import DashboardPhotobooksPage from "./pages/DashboardPhotobooksPage";
+import DashboardSettingsPage from "./pages/DashboardSettingsPage";
+import PhotobookEditorPage from "./pages/PhotobookEditorPage";
+import OnboardingPage from "./pages/OnboardingPage";
+import DiscoverPage from "./pages/DiscoverPage";
+import CityPage from "./pages/CityPage";
 import LoginPage from "./pages/LoginPage";
 import EventFormPage from "./pages/EventFormPage";
 import QRCodePage from "./pages/QRCodePage";
@@ -31,9 +39,17 @@ const App = () => (
           <Routes>
             <Route path="/" element={<LandingPage />} />
             <Route path="/pricing" element={<PricingPage />} />
+            <Route path="/discover" element={<DiscoverPage />} />
+            <Route path="/city/:citySlug" element={<CityPage />} />
             <Route path="/camera/:eventId" element={<CameraPage />} />
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
             <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+            <Route path="/dashboard/events" element={<ProtectedRoute><DashboardEventsPage /></ProtectedRoute>} />
+            <Route path="/dashboard/music" element={<ProtectedRoute><DashboardMusicPage /></ProtectedRoute>} />
+            <Route path="/dashboard/photobooks" element={<ProtectedRoute><DashboardPhotobooksPage /></ProtectedRoute>} />
+            <Route path="/dashboard/settings" element={<ProtectedRoute><DashboardSettingsPage /></ProtectedRoute>} />
+            <Route path="/photobooks/:bookId" element={<ProtectedRoute><PhotobookEditorPage /></ProtectedRoute>} />
             <Route path="/events/new" element={<ProtectedRoute><EventFormPage /></ProtectedRoute>} />
             <Route path="/events/:eventId/edit" element={<ProtectedRoute><EventFormPage /></ProtectedRoute>} />
             <Route path="/events/:eventId/qr" element={<ProtectedRoute><QRCodePage /></ProtectedRoute>} />
