@@ -12,9 +12,9 @@ declare global {
 async function loadVisionTasks() {
   if (window.__mpVision) return window.__mpVision;
   // Load the WASM tasks-vision bundle via dynamic ESM import from CDN
-  const mod: any = await import(
-    /* @vite-ignore */ "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs"
-  );
+  const url = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs";
+  // @ts-ignore - dynamic remote ESM
+  const mod: any = await import(/* @vite-ignore */ url);
   window.__mpVision = mod;
   return mod;
 }
