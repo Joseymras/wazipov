@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Users, Image, CalendarDays, TrendingUp, Camera, Shield, Sparkles, Settings, Loader2, Save, Wand2 } from "lucide-react";
+import { Users, Image, CalendarDays, TrendingUp, Camera, Shield, Sparkles, Settings, Loader2, Save, Wand2, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import Navbar from "@/components/Navbar";
 import { toast } from "@/hooks/use-toast";
+import { useTierPrices } from "@/hooks/useTierPrices";
 
 interface AdsenseConf { enabled: boolean; client_id: string; slot_id: string; }
 
@@ -16,6 +17,27 @@ export default function AdminPage() {
   const [recentEvents, setRecentEvents] = useState<any[]>([]);
   const [adsense, setAdsense] = useState<AdsenseConf>({ enabled: false, client_id: "", slot_id: "" });
   const [savingAds, setSavingAds] = useState(false);
+  const { tiers, reload: reloadTiers } = useTierPrices();
+  const [editTiers, setEditTiers] = useState<typeof tiers>([]);
+  const [savingPrices, setSavingPrices] = useState(false);
+
+  useEffect(() => { setEditTiers(tiers); }, [tiers]);
+
+  async function savePrices() {
+    setSavingPrices(true);
+    const updates = editTiers.map(t =>
+      supabase.from("platform_settings").upsert({
+        key: `pricing_${t.id}`,
+        value: { name: t.name, base_kes: Number(t.base_kes), per_guest_kes: Number(t.per_guest_kes), trial_days: Number(t.trial_days), lifetime: !!t.lifetime, popular: !!t.popular } as any,
+        updated_at: new Date().toISOString(),
+      })
+    );
+    const results = await Promise.all(updates);
+    setSavingPrices(false);
+    const err = results.find(r => r.error);
+    if (err) toast({ title: "Save failed", description: err.error!.message, variant: "destructive" });
+    else { toast({ title: "Pricing updated — landing & checkout will reflect new amounts" }); reloadTiers(); }
+  }
 
   // Marketing AI
   const [topic, setTopic] = useState("Wedding album reveal day");
