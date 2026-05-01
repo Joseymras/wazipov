@@ -47,8 +47,8 @@ export default function PricingPage() {
       const total = tier ? tier.base_kes + (tier.per_guest_kes * guests) : 0;
       const fn = provider() === "stripe" ? "stripe-init" : "paystack-init";
       const body = provider() === "stripe"
-        ? { plan: planId, amount_kes: total, success_url: `${window.location.origin}/payment-success`, cancel_url: `${window.location.origin}/pricing` }
-        : { plan: planId, amount_kes: total, callback_url: `${window.location.origin}/payment-success` };
+        ? { plan: planId, guests, success_url: `${window.location.origin}/payment-success`, cancel_url: `${window.location.origin}/pricing` }
+        : { plan: planId, guests, callback_url: `${window.location.origin}/payment-success` };
       const { data, error } = await supabase.functions.invoke(fn, { body });
       const url = data?.url || data?.authorization_url;
       if (error || !url) throw new Error(data?.error || "Checkout failed");
