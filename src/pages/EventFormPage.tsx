@@ -295,6 +295,7 @@ export default function EventFormPage() {
           </motion.form>
         </div>
       </div>
+      <UpgradeModal open={showUpgrade} onClose={() => setShowUpgrade(false)} feature="creating new events" />
     </div>
   );
 }
