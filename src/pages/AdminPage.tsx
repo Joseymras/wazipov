@@ -148,6 +148,41 @@ export default function AdminPage() {
             </Button>
           </div>
 
+          {/* Pricing Editor — single source of truth used by landing, /pricing, Stripe, and Paystack */}
+          <div className="rounded-2xl border border-border bg-card p-6 space-y-4">
+            <div className="flex items-center gap-2">
+              <DollarSign className="w-5 h-5 text-foreground" />
+              <h2 className="font-heading text-xl font-semibold text-foreground">Pricing tiers</h2>
+            </div>
+            <p className="text-sm text-muted-foreground">Edit base price (KES) and per-guest add-on. These reflect on the pricing page and are used to compute Paystack/Stripe checkout amounts.</p>
+            <div className="grid md:grid-cols-3 gap-3">
+              {editTiers.map((t, idx) => (
+                <div key={t.id} className="rounded-xl border border-border p-4 space-y-2">
+                  <p className="font-heading font-semibold capitalize">{t.id}</p>
+                  <label className="block">
+                    <span className="text-xs text-muted-foreground">Display name</span>
+                    <Input value={t.name} onChange={e => setEditTiers(p => p.map((x,i) => i===idx ? { ...x, name: e.target.value } : x))} />
+                  </label>
+                  <label className="block">
+                    <span className="text-xs text-muted-foreground">Base (KES)</span>
+                    <Input type="number" value={t.base_kes} onChange={e => setEditTiers(p => p.map((x,i) => i===idx ? { ...x, base_kes: Number(e.target.value) } : x))} />
+                  </label>
+                  <label className="block">
+                    <span className="text-xs text-muted-foreground">Per guest (KES)</span>
+                    <Input type="number" value={t.per_guest_kes} onChange={e => setEditTiers(p => p.map((x,i) => i===idx ? { ...x, per_guest_kes: Number(e.target.value) } : x))} />
+                  </label>
+                  <label className="block">
+                    <span className="text-xs text-muted-foreground">Trial (days)</span>
+                    <Input type="number" value={t.trial_days} onChange={e => setEditTiers(p => p.map((x,i) => i===idx ? { ...x, trial_days: Number(e.target.value) } : x))} />
+                  </label>
+                </div>
+              ))}
+            </div>
+            <Button size="sm" onClick={savePrices} disabled={savingPrices} className="rounded-full">
+              {savingPrices ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Save pricing
+            </Button>
+          </div>
+
           {/* AI Marketing Studio */}
           <div className="glass-card rounded-2xl p-6 space-y-4">
             <div className="flex items-center gap-2">
