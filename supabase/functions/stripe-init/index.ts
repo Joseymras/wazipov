@@ -6,12 +6,7 @@ const STRIPE_SECRET = Deno.env.get("STRIPE_SECRET_KEY")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-// USD prices roughly equivalent to KES tiers (KES→USD ~0.0078)
-const PLAN_PRICING_USD: Record<string, { name: string; amount: number; mode: "subscription" | "payment"; interval?: "month" }> = {
-  starter: { name: "POV Moments Starter", amount: 99, mode: "subscription", interval: "month" },     // $0.99/mo
-  pro: { name: "POV Moments Pro", amount: 799, mode: "subscription", interval: "month" },             // $7.99/mo
-  platinum: { name: "POV Moments Platinum (Lifetime)", amount: 5499, mode: "payment" },               // $54.99 one-time
-};
+const KES_TO_USD = 0.0078;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -25,39 +20,44 @@ Deno.serve(async (req) => {
     const { data: { user } } = await supa.auth.getUser(token);
     if (!user) return json({ error: "Unauthorized" }, 401);
 
-    const { plan, success_url, cancel_url } = await req.json();
-    const config = PLAN_PRICING_USD[plan];
-    if (!config) return json({ error: "Invalid plan" }, 400);
+    const { plan, success_url, cancel_url, guests = 50 } = await req.json();
+    if (!["starter", "pro", "platinum"].includes(plan)) return json({ error: "Invalid plan" }, 400);
+
+    // Authoritative price from DB
+    const { data: setting } = await supa.from("platform_settings").select("value").eq("key", `pricing_${plan}`).maybeSingle();
+    const cfg = (setting?.value as any) || {};
+    const base = Number(cfg.base_kes ?? 0);
+    const perGuest = Number(cfg.per_guest_kes ?? 0);
+    const lifetime = !!cfg.lifetime;
+    const guestN = Math.max(1, Math.min(2000, Number(guests) || 50));
+    const totalKes = base + perGuest * guestN;
+    if (totalKes <= 0) return json({ error: "Pricing not configured" }, 400);
+
+    const amountUsdCents = Math.max(50, Math.round(totalKes * KES_TO_USD * 100));
 
     const stripe = new Stripe(STRIPE_SECRET, { apiVersion: "2024-12-18.acacia" });
 
     const session = await stripe.checkout.sessions.create({
-      mode: config.mode,
+      mode: lifetime ? "payment" : "subscription",
       payment_method_types: ["card"],
       customer_email: user.email!,
-      line_items: [
-        {
-          price_data: {
-            currency: "usd",
-            product_data: { name: config.name },
-            unit_amount: config.amount,
-            ...(config.interval ? { recurring: { interval: config.interval } } : {}),
-          },
-          quantity: 1,
+      line_items: [{
+        price_data: {
+          currency: "usd",
+          product_data: { name: `POV Moments ${cfg.name || plan}` },
+          unit_amount: amountUsdCents,
+          ...(lifetime ? {} : { recurring: { interval: "month" as const } }),
         },
-      ],
+        quantity: 1,
+      }],
       success_url: `${success_url}?session_id={CHECKOUT_SESSION_ID}&provider=stripe`,
       cancel_url,
-      metadata: { user_id: user.id, plan },
+      metadata: { user_id: user.id, plan, guests: String(guestN), kes_amount: String(totalKes) },
     });
 
     await supa.from("subscriptions").insert({
-      user_id: user.id,
-      tier: plan,
-      provider: "stripe",
-      stripe_session_id: session.id,
-      amount_kes: Math.round(config.amount / 0.78), // approx KES equivalent
-      status: "pending",
+      user_id: user.id, tier: plan, provider: "stripe",
+      stripe_session_id: session.id, amount_kes: totalKes, status: "pending",
     });
 
     return json({ url: session.url, session_id: session.id });
