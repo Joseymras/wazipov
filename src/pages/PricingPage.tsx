@@ -9,13 +9,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { detectGeo, type GeoInfo } from "@/lib/geo";
 import { toast } from "@/hooks/use-toast";
 import ThemeToggle from "@/components/ThemeToggle";
+import { useTierPrices } from "@/hooks/useTierPrices";
 
-// Pricing scales with guest count (pov.camera-style dynamic).
-const TIERS = [
-  { id: "starter", name: "Starter", base: 100, perGuest: 5, desc: "1 event, basic features", trial: true },
-  { id: "pro", name: "Pro", base: 999, perGuest: 8, desc: "Unlimited events + all camera modes", trial: true, popular: true },
-  { id: "platinum", name: "Platinum", base: 6999, perGuest: 0, desc: "Lifetime access, unlimited everything", trial: true, lifetime: true },
-];
+
 const FX_RATES: Record<string, number> = { KES: 1, USD: 0.0078, EUR: 0.0072, GBP: 0.0061, NGN: 12.5, ZAR: 0.14 };
 const SYMBOLS: Record<string, string> = { KES: "Ksh", USD: "$", EUR: "€", GBP: "£", NGN: "₦", ZAR: "R" };
 
@@ -23,6 +19,7 @@ export default function PricingPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [params] = useSearchParams();
+  const { tiers: TIERS } = useTierPrices();
   const [geo, setGeo] = useState<GeoInfo | null>(null);
   const [guests, setGuests] = useState(50);
   const [loading, setLoading] = useState<string | null>(null);
@@ -33,7 +30,7 @@ export default function PricingPage() {
     const plan = params.get("plan");
     if (user && plan && TIERS.find(t => t.id === plan)) checkout(plan);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  }, [user, TIERS]);
 
   function format(kes: number) {
     if (!geo || geo.currency === "KES" || !FX_RATES[geo.currency]) return { sym: "Ksh", val: kes.toLocaleString() };
