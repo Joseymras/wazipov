@@ -43,10 +43,12 @@ export default function PricingPage() {
     if (!user) { navigate(`/login?next=/pricing?plan=${planId}`); return; }
     setLoading(planId);
     try {
+      const tier = TIERS.find(t => t.id === planId);
+      const total = tier ? tier.base_kes + (tier.per_guest_kes * guests) : 0;
       const fn = provider() === "stripe" ? "stripe-init" : "paystack-init";
       const body = provider() === "stripe"
-        ? { plan: planId, success_url: `${window.location.origin}/payment-success`, cancel_url: `${window.location.origin}/pricing` }
-        : { plan: planId, callback_url: `${window.location.origin}/payment-success` };
+        ? { plan: planId, amount_kes: total, success_url: `${window.location.origin}/payment-success`, cancel_url: `${window.location.origin}/pricing` }
+        : { plan: planId, amount_kes: total, callback_url: `${window.location.origin}/payment-success` };
       const { data, error } = await supabase.functions.invoke(fn, { body });
       const url = data?.url || data?.authorization_url;
       if (error || !url) throw new Error(data?.error || "Checkout failed");
@@ -98,20 +100,21 @@ export default function PricingPage() {
 
         <div className="grid md:grid-cols-3 gap-4">
           {TIERS.map((tier, i) => {
-            const total = tier.base + (tier.perGuest * guests);
+            const total = tier.base_kes + (tier.per_guest_kes * guests);
             const { sym, val } = format(total);
+            const desc = tier.id === "starter" ? "1 event, basic features" : tier.id === "pro" ? "Unlimited events + all camera modes" : "Lifetime access, unlimited everything";
             return (
               <motion.div key={tier.id} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
                 className={`rounded-2xl p-6 flex flex-col border-2 ${tier.popular ? "border-foreground bg-card" : "border-border bg-card"}`}>
                 {tier.popular && <span className="self-start text-xs px-2 py-0.5 rounded-full bg-foreground text-background mb-3">Most popular</span>}
                 <h3 className="font-heading text-xl font-semibold">{tier.name}</h3>
-                <p className="text-xs text-muted-foreground mb-4">{tier.desc}</p>
+                <p className="text-xs text-muted-foreground mb-4">{desc}</p>
                 <div className="flex items-baseline gap-1 mb-1">
                   <span className="text-sm">{sym}</span>
                   <span className="font-heading text-4xl font-bold">{val}</span>
                   <span className="text-sm text-muted-foreground">{tier.lifetime ? " once" : "/mo"}</span>
                 </div>
-                <p className="text-xs text-muted-foreground mb-5">For {guests} guests · 1-day free trial</p>
+                <p className="text-xs text-muted-foreground mb-5">For {guests} guests · {tier.trial_days}-day free trial</p>
                 <ul className="space-y-2 text-sm flex-1 mb-5">
                   {[
                     tier.lifetime ? "Lifetime access" : "Cancel anytime",
