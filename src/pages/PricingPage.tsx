@@ -9,13 +9,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { detectGeo, type GeoInfo } from "@/lib/geo";
 import { toast } from "@/hooks/use-toast";
 import ThemeToggle from "@/components/ThemeToggle";
+import { useTierPrices } from "@/hooks/useTierPrices";
 
-// Pricing scales with guest count (pov.camera-style dynamic).
-const TIERS = [
-  { id: "starter", name: "Starter", base: 100, perGuest: 5, desc: "1 event, basic features", trial: true },
-  { id: "pro", name: "Pro", base: 999, perGuest: 8, desc: "Unlimited events + all camera modes", trial: true, popular: true },
-  { id: "platinum", name: "Platinum", base: 6999, perGuest: 0, desc: "Lifetime access, unlimited everything", trial: true, lifetime: true },
-];
+
 const FX_RATES: Record<string, number> = { KES: 1, USD: 0.0078, EUR: 0.0072, GBP: 0.0061, NGN: 12.5, ZAR: 0.14 };
 const SYMBOLS: Record<string, string> = { KES: "Ksh", USD: "$", EUR: "€", GBP: "£", NGN: "₦", ZAR: "R" };
 
@@ -23,6 +19,7 @@ export default function PricingPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [params] = useSearchParams();
+  const { tiers: TIERS } = useTierPrices();
   const [geo, setGeo] = useState<GeoInfo | null>(null);
   const [guests, setGuests] = useState(50);
   const [loading, setLoading] = useState<string | null>(null);
@@ -33,7 +30,7 @@ export default function PricingPage() {
     const plan = params.get("plan");
     if (user && plan && TIERS.find(t => t.id === plan)) checkout(plan);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  }, [user, TIERS]);
 
   function format(kes: number) {
     if (!geo || geo.currency === "KES" || !FX_RATES[geo.currency]) return { sym: "Ksh", val: kes.toLocaleString() };
@@ -46,10 +43,12 @@ export default function PricingPage() {
     if (!user) { navigate(`/login?next=/pricing?plan=${planId}`); return; }
     setLoading(planId);
     try {
+      const tier = TIERS.find(t => t.id === planId);
+      const total = tier ? tier.base_kes + (tier.per_guest_kes * guests) : 0;
       const fn = provider() === "stripe" ? "stripe-init" : "paystack-init";
       const body = provider() === "stripe"
-        ? { plan: planId, success_url: `${window.location.origin}/payment-success`, cancel_url: `${window.location.origin}/pricing` }
-        : { plan: planId, callback_url: `${window.location.origin}/payment-success` };
+        ? { plan: planId, guests, success_url: `${window.location.origin}/payment-success`, cancel_url: `${window.location.origin}/pricing` }
+        : { plan: planId, guests, callback_url: `${window.location.origin}/payment-success` };
       const { data, error } = await supabase.functions.invoke(fn, { body });
       const url = data?.url || data?.authorization_url;
       if (error || !url) throw new Error(data?.error || "Checkout failed");
@@ -101,20 +100,21 @@ export default function PricingPage() {
 
         <div className="grid md:grid-cols-3 gap-4">
           {TIERS.map((tier, i) => {
-            const total = tier.base + (tier.perGuest * guests);
+            const total = tier.base_kes + (tier.per_guest_kes * guests);
             const { sym, val } = format(total);
+            const desc = tier.id === "starter" ? "1 event, basic features" : tier.id === "pro" ? "Unlimited events + all camera modes" : "Lifetime access, unlimited everything";
             return (
               <motion.div key={tier.id} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
                 className={`rounded-2xl p-6 flex flex-col border-2 ${tier.popular ? "border-foreground bg-card" : "border-border bg-card"}`}>
                 {tier.popular && <span className="self-start text-xs px-2 py-0.5 rounded-full bg-foreground text-background mb-3">Most popular</span>}
                 <h3 className="font-heading text-xl font-semibold">{tier.name}</h3>
-                <p className="text-xs text-muted-foreground mb-4">{tier.desc}</p>
+                <p className="text-xs text-muted-foreground mb-4">{desc}</p>
                 <div className="flex items-baseline gap-1 mb-1">
                   <span className="text-sm">{sym}</span>
                   <span className="font-heading text-4xl font-bold">{val}</span>
                   <span className="text-sm text-muted-foreground">{tier.lifetime ? " once" : "/mo"}</span>
                 </div>
-                <p className="text-xs text-muted-foreground mb-5">For {guests} guests · 1-day free trial</p>
+                <p className="text-xs text-muted-foreground mb-5">For {guests} guests · {tier.trial_days}-day free trial</p>
                 <ul className="space-y-2 text-sm flex-1 mb-5">
                   {[
                     tier.lifetime ? "Lifetime access" : "Cancel anytime",

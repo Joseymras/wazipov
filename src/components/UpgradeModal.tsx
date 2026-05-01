@@ -25,17 +25,17 @@ export default function UpgradeModal({ open, onClose, feature = "this feature" }
             animate={{ scale: 1, y: 0 }}
             exit={{ scale: 0.95, opacity: 0 }}
             onClick={(e) => e.stopPropagation()}
-            className="relative max-w-md w-full glass-card rounded-3xl p-8 space-y-5"
+            className="relative max-w-md w-full bg-card border border-border rounded-3xl p-6 sm:p-8 space-y-5"
           >
             <button
               onClick={onClose}
               aria-label="Close"
-              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-foreground/10 flex items-center justify-center hover:bg-foreground/20"
+              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-secondary flex items-center justify-center hover:bg-muted"
             >
               <X className="w-4 h-4 text-foreground" />
             </button>
-            <div className="w-14 h-14 rounded-2xl bg-gradient-warm flex items-center justify-center">
-              <Lock className="w-7 h-7 text-primary-foreground" />
+            <div className="w-14 h-14 rounded-2xl bg-foreground flex items-center justify-center">
+              <Lock className="w-7 h-7 text-background" />
             </div>
             <div className="space-y-2">
               <h2 className="font-heading text-2xl font-bold text-foreground">Trial expired</h2>
@@ -55,7 +55,7 @@ export default function UpgradeModal({ open, onClose, feature = "this feature" }
                 </li>
               ))}
             </ul>
-            <Button variant="hero" size="lg" className="w-full" asChild>
+            <Button size="lg" className="w-full rounded-full" asChild>
               <Link to="/pricing">
                 See plans <ArrowRight className="w-4 h-4" />
               </Link>

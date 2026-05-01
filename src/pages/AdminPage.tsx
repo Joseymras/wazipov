@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Users, Image, CalendarDays, TrendingUp, Camera, Shield, Sparkles, Settings, Loader2, Save, Wand2 } from "lucide-react";
+import { Users, Image, CalendarDays, TrendingUp, Camera, Shield, Sparkles, Settings, Loader2, Save, Wand2, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import Navbar from "@/components/Navbar";
 import { toast } from "@/hooks/use-toast";
+import { useTierPrices } from "@/hooks/useTierPrices";
 
 interface AdsenseConf { enabled: boolean; client_id: string; slot_id: string; }
 
@@ -16,6 +17,27 @@ export default function AdminPage() {
   const [recentEvents, setRecentEvents] = useState<any[]>([]);
   const [adsense, setAdsense] = useState<AdsenseConf>({ enabled: false, client_id: "", slot_id: "" });
   const [savingAds, setSavingAds] = useState(false);
+  const { tiers, reload: reloadTiers } = useTierPrices();
+  const [editTiers, setEditTiers] = useState<typeof tiers>([]);
+  const [savingPrices, setSavingPrices] = useState(false);
+
+  useEffect(() => { setEditTiers(tiers); }, [tiers]);
+
+  async function savePrices() {
+    setSavingPrices(true);
+    const updates = editTiers.map(t =>
+      supabase.from("platform_settings").upsert({
+        key: `pricing_${t.id}`,
+        value: { name: t.name, base_kes: Number(t.base_kes), per_guest_kes: Number(t.per_guest_kes), trial_days: Number(t.trial_days), lifetime: !!t.lifetime, popular: !!t.popular } as any,
+        updated_at: new Date().toISOString(),
+      })
+    );
+    const results = await Promise.all(updates);
+    setSavingPrices(false);
+    const err = results.find(r => r.error);
+    if (err) toast({ title: "Save failed", description: err.error!.message, variant: "destructive" });
+    else { toast({ title: "Pricing updated — landing & checkout will reflect new amounts" }); reloadTiers(); }
+  }
 
   // Marketing AI
   const [topic, setTopic] = useState("Wedding album reveal day");
@@ -123,6 +145,41 @@ export default function AdminPage() {
             </div>
             <Button variant="hero" size="sm" onClick={saveAds} disabled={savingAds}>
               {savingAds ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Save
+            </Button>
+          </div>
+
+          {/* Pricing Editor — single source of truth used by landing, /pricing, Stripe, and Paystack */}
+          <div className="rounded-2xl border border-border bg-card p-6 space-y-4">
+            <div className="flex items-center gap-2">
+              <DollarSign className="w-5 h-5 text-foreground" />
+              <h2 className="font-heading text-xl font-semibold text-foreground">Pricing tiers</h2>
+            </div>
+            <p className="text-sm text-muted-foreground">Edit base price (KES) and per-guest add-on. These reflect on the pricing page and are used to compute Paystack/Stripe checkout amounts.</p>
+            <div className="grid md:grid-cols-3 gap-3">
+              {editTiers.map((t, idx) => (
+                <div key={t.id} className="rounded-xl border border-border p-4 space-y-2">
+                  <p className="font-heading font-semibold capitalize">{t.id}</p>
+                  <label className="block">
+                    <span className="text-xs text-muted-foreground">Display name</span>
+                    <Input value={t.name} onChange={e => setEditTiers(p => p.map((x,i) => i===idx ? { ...x, name: e.target.value } : x))} />
+                  </label>
+                  <label className="block">
+                    <span className="text-xs text-muted-foreground">Base (KES)</span>
+                    <Input type="number" value={t.base_kes} onChange={e => setEditTiers(p => p.map((x,i) => i===idx ? { ...x, base_kes: Number(e.target.value) } : x))} />
+                  </label>
+                  <label className="block">
+                    <span className="text-xs text-muted-foreground">Per guest (KES)</span>
+                    <Input type="number" value={t.per_guest_kes} onChange={e => setEditTiers(p => p.map((x,i) => i===idx ? { ...x, per_guest_kes: Number(e.target.value) } : x))} />
+                  </label>
+                  <label className="block">
+                    <span className="text-xs text-muted-foreground">Trial (days)</span>
+                    <Input type="number" value={t.trial_days} onChange={e => setEditTiers(p => p.map((x,i) => i===idx ? { ...x, trial_days: Number(e.target.value) } : x))} />
+                  </label>
+                </div>
+              ))}
+            </div>
+            <Button size="sm" onClick={savePrices} disabled={savingPrices} className="rounded-full">
+              {savingPrices ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Save pricing
             </Button>
           </div>
 
