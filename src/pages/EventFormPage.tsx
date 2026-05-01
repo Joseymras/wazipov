@@ -11,6 +11,8 @@ import { supabase } from "@/integrations/supabase/client";
 import Navbar from "@/components/Navbar";
 import { toast } from "@/hooks/use-toast";
 import { USE_CASES } from "@/lib/usecases";
+import { useTrial } from "@/hooks/useTrial";
+import UpgradeModal from "@/components/UpgradeModal";
 
 type RevealTiming = "immediate" | "after_event" | "24h_delay" | "custom";
 type GalleryType = "shared" | "private";
@@ -40,6 +42,8 @@ export default function EventFormPage() {
   const [featuredFile, setFeaturedFile] = useState<File | null>(null);
   const [featuredUrl, setFeaturedUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const { isExpired, isPaid } = useTrial();
+  const [showUpgrade, setShowUpgrade] = useState(false);
 
   useEffect(() => { if (isEditing) loadEvent(); /* eslint-disable-next-line */ }, [eventId]);
 
@@ -78,6 +82,8 @@ export default function EventFormPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!user) return;
+    // Soft trial lock: block creating new events when expired & not paid
+    if (!isEditing && isExpired && !isPaid) { setShowUpgrade(true); return; }
     setLoading(true);
     try {
       const finalFeatured = featuredFile ? await uploadFeatured() : featuredUrl;
