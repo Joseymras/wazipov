@@ -93,48 +93,8 @@ export default function LandingPage() {
         </div>
       </nav>
 
-      {/* HERO — POV-inspired dark blue band with phone mockups */}
-      <section className="relative pt-24 pb-16 md:pb-24 px-4 bg-gradient-hero">
-        <div className="container max-w-7xl mx-auto">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <motion.div initial="hidden" animate="visible" className="space-y-6 text-center lg:text-left">
-              <motion.div variants={fadeUp} custom={0}
-                className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-semibold uppercase tracking-wider">
-                <Sparkles className="w-3.5 h-3.5" /> {t("hero_badge")}
-              </motion.div>
-              <motion.h1 variants={fadeUp} custom={1}
-                className="font-heading text-5xl md:text-6xl lg:text-7xl font-bold leading-[1.02] tracking-tight uppercase">
-                {t("hero_title")}<br />
-                <span className="text-gradient-warm">{t("hero_title_2")}</span>
-              </motion.h1>
-              <motion.p variants={fadeUp} custom={2} className="text-lg text-muted-foreground max-w-xl mx-auto lg:mx-0 leading-relaxed">
-                {t("hero_sub")}
-              </motion.p>
-              <motion.div variants={fadeUp} custom={3} className="flex flex-col sm:flex-row items-center lg:items-start justify-center lg:justify-start gap-3 pt-2">
-                <Button variant="hero" size="xl" asChild>
-                  <Link to="/pricing">{t("cta_create")} <ArrowRight className="w-5 h-5" /></Link>
-                </Button>
-                <Button variant="glass" size="lg" asChild>
-                  <Link to="/camera/demo">{t("cta_try")}</Link>
-                </Button>
-              </motion.div>
-              <motion.div variants={fadeUp} custom={4} className="flex items-center justify-center lg:justify-start gap-1 pt-2">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <Star key={i} className="w-4 h-4 fill-secondary text-secondary" />
-                ))}
-                <span className="text-sm text-muted-foreground ml-2">{t("rated")}</span>
-              </motion.div>
-            </motion.div>
-
-            {/* Phone mockup trio */}
-            <div className="relative flex items-center justify-center gap-2 sm:gap-4 lg:gap-2 perspective-1000">
-              <PhoneMock src={hero1} rotate={-8} delay={0.1} />
-              <PhoneMock src={hero2} rotate={0} delay={0.25} />
-              <PhoneMock src={hero3} rotate={8} delay={0.4} />
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* HERO */}
+      <HeroSection />
 
       {/* UGC photo wall */}
       <section id="wall" className="py-12 px-4 relative">
