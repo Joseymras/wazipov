@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, Calendar, BookOpen, Music2, Settings, CreditCard, Users, ShieldCheck, Compass, LogOut, Camera,
+  LayoutDashboard, Calendar, BookOpen, Music2, Settings, CreditCard, Users, ShieldCheck, Compass, LogOut, Camera, Megaphone,
 } from "lucide-react";
 import { NavLink, useLocation, Link } from "react-router-dom";
 import {
@@ -14,6 +14,7 @@ const mainItems = [
   { title: "Events", url: "/dashboard/events", icon: Calendar },
   { title: "Photobooks", url: "/dashboard/photobooks", icon: BookOpen },
   { title: "Music Library", url: "/dashboard/music", icon: Music2 },
+  { title: "Marketing AI", url: "/dashboard/marketing", icon: Megaphone },
   { title: "Discover", url: "/discover", icon: Compass },
 ];
 const accountItems = [
