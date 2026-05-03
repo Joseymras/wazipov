@@ -196,6 +196,27 @@ export type Database = {
         }
         Relationships: []
       }
+      gallery_unlocks: {
+        Row: {
+          event_id: string
+          id: string
+          owner_key: string
+          unlocked_at: string
+        }
+        Insert: {
+          event_id: string
+          id?: string
+          owner_key: string
+          unlocked_at?: string
+        }
+        Update: {
+          event_id?: string
+          id?: string
+          owner_key?: string
+          unlocked_at?: string
+        }
+        Relationships: []
+      }
       photo_likes: {
         Row: {
           created_at: string
@@ -519,6 +540,74 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      wallet_transactions: {
+        Row: {
+          amount_kes: number | null
+          created_at: string
+          delta_tokens: number
+          event_id: string | null
+          id: string
+          kind: string
+          reference: string | null
+          wallet_id: string
+        }
+        Insert: {
+          amount_kes?: number | null
+          created_at?: string
+          delta_tokens: number
+          event_id?: string | null
+          id?: string
+          kind: string
+          reference?: string | null
+          wallet_id: string
+        }
+        Update: {
+          amount_kes?: number | null
+          created_at?: string
+          delta_tokens?: number
+          event_id?: string | null
+          id?: string
+          kind?: string
+          reference?: string | null
+          wallet_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wallet_transactions_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "wallets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wallets: {
+        Row: {
+          balance_tokens: number
+          created_at: string
+          id: string
+          owner_key: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          balance_tokens?: number
+          created_at?: string
+          id?: string
+          owner_key: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          balance_tokens?: number
+          created_at?: string
+          id?: string
+          owner_key?: string
+          updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }
