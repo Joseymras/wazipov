@@ -79,14 +79,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function signUp(email: string, password: string, displayName?: string) {
-    const { error } = await supabase.auth.signUp({
+    const ref = localStorage.getItem("pov_ref");
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: { display_name: displayName },
+        data: { display_name: displayName, ref_code: ref || null },
         emailRedirectTo: window.location.origin,
       },
     });
+    // Best-effort referral row (uses referral_code → user_id lookup)
+    if (!error && data.user && ref) {
+      try {
+        const { data: refProfile } = await supabase.from("profiles").select("user_id").eq("referral_code", ref).maybeSingle();
+        if (refProfile) {
+          await supabase.from("referrals").insert({ referrer_id: refProfile.user_id, referred_id: data.user.id });
+        }
+      } catch { /* ignore */ }
+      localStorage.removeItem("pov_ref");
+    }
     return { error: error as Error | null };
   }
 
