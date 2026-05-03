@@ -92,6 +92,9 @@ export default function CameraPage() {
   const [showMusic, setShowMusic] = useState(false);
   const [allowMusic, setAllowMusic] = useState(true);
   const [allowGreenscreen, setAllowGreenscreen] = useState(true);
+  const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
+  const [deviceId, setDeviceId] = useState<string | null>(null);
+  const [showDevices, setShowDevices] = useState(false);
   const backdropImgRef = useRef<HTMLImageElement | null>(null);
   const audioCleanupRef = useRef<(() => void) | null>(null);
 
@@ -104,7 +107,7 @@ export default function CameraPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [eventId]);
 
-  useEffect(() => { startCamera(); }, [facingMode, mode]);
+  useEffect(() => { startCamera(); }, [facingMode, mode, deviceId]);
 
   // Recording timer
   useEffect(() => {
@@ -171,12 +174,17 @@ export default function CameraPage() {
     streamRef.current?.getTracks().forEach(t => t.stop());
     try {
       const needsAudio = mode === "video";
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode, width: { ideal: 1920 }, height: { ideal: 1080 } },
-        audio: needsAudio,
-      });
+      const videoConstraints: MediaTrackConstraints = deviceId
+        ? { deviceId: { exact: deviceId }, width: { ideal: 1920 }, height: { ideal: 1080 } }
+        : { facingMode, width: { ideal: 1920 }, height: { ideal: 1080 } };
+      const stream = await navigator.mediaDevices.getUserMedia({ video: videoConstraints, audio: needsAudio });
       streamRef.current = stream;
       if (videoRef.current) { videoRef.current.srcObject = stream; setCameraReady(true); }
+      // Enumerate devices once permission is granted
+      try {
+        const all = await navigator.mediaDevices.enumerateDevices();
+        setDevices(all.filter(d => d.kind === "videoinput"));
+      } catch { /* ignore */ }
     } catch {
       toast({ title: "Camera access denied", description: "Please allow camera access.", variant: "destructive" });
     }
@@ -473,10 +481,31 @@ export default function CameraPage() {
           <Aperture className="w-4 h-4 text-primary" />
           <span className="font-heading text-sm font-semibold text-background/90 truncate max-w-[180px]">{eventName}</span>
         </div>
-        <button onClick={() => setFacingMode(f => f === "user" ? "environment" : "user")} aria-label="Switch camera">
-          <SwitchCamera className="w-6 h-6 text-background/70 hover:text-background transition-colors" />
-        </button>
+        <div className="flex items-center gap-3">
+          {devices.length > 1 && (
+            <button onClick={() => setShowDevices(s => !s)} aria-label="Pick camera"
+              className="text-xs text-background/70 hover:text-background underline underline-offset-2">
+              {devices.length} cams
+            </button>
+          )}
+          <button onClick={() => { setDeviceId(null); setFacingMode(f => f === "user" ? "environment" : "user"); }} aria-label="Switch camera">
+            <SwitchCamera className="w-6 h-6 text-background/70 hover:text-background transition-colors" />
+          </button>
+        </div>
       </div>
+      <AnimatePresence>
+        {showDevices && (
+          <motion.div initial={{ y: -10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -10, opacity: 0 }}
+            className="absolute top-16 right-4 z-30 bg-background rounded-xl shadow-xl p-2 max-w-xs">
+            {devices.map((d, i) => (
+              <button key={d.deviceId} onClick={() => { setDeviceId(d.deviceId); setShowDevices(false); }}
+                className={`block w-full text-left text-xs px-3 py-2 rounded ${deviceId === d.deviceId ? "bg-secondary" : "hover:bg-muted"}`}>
+                {d.label || `Camera ${i + 1}`}
+              </button>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Recording indicator */}
       {recording && (

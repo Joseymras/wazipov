@@ -1,5 +1,6 @@
-import { motion } from "framer-motion";
-import { Camera, Sparkles, Clock, QrCode, ArrowRight, Star, BookOpen, Mic, Wand2, Lock, Globe } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useState } from "react";
+import { Camera, Sparkles, Clock, QrCode, ArrowRight, Star, BookOpen, Mic, Wand2, Lock, Globe, Heart, Cake, Briefcase, PartyPopper, GraduationCap, Music, Plane } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -59,8 +60,107 @@ function PhoneMock({ src, rotate = 0, delay = 0 }: { src: string; rotate?: numbe
   );
 }
 
+const USE_CASES = [
+  { id: "wedding", label: "Weddings", icon: Heart, img: "https://images.pexels.com/photos/1043902/pexels-photo-1043902.jpeg?auto=compress&w=900",
+    title: "Capture the love.", sub: "Every guest's POV of the big day, hidden until the reveal." },
+  { id: "birthday", label: "Birthdays", icon: Cake, img: "https://images.pexels.com/photos/1729797/pexels-photo-1729797.jpeg?auto=compress&w=900",
+    title: "Make their day.", sub: "Disposable-style fun. Surprise reveal the morning after." },
+  { id: "corporate", label: "Corporate", icon: Briefcase, img: "https://images.pexels.com/photos/2774556/pexels-photo-2774556.jpeg?auto=compress&w=900",
+    title: "Brand every angle.", sub: "Conferences, launches & offsites — all in your colours." },
+  { id: "party", label: "Parties", icon: PartyPopper, img: "https://images.pexels.com/photos/1684187/pexels-photo-1684187.jpeg?auto=compress&w=900",
+    title: "Bottle the vibe.", sub: "Boomerangs, GIFs, green-screen — pure chaos, beautifully captured." },
+  { id: "concert", label: "Concerts", icon: Music, img: "https://images.pexels.com/photos/2306281/pexels-photo-2306281.jpeg?auto=compress&w=900",
+    title: "Crowdsource the show.", sub: "Hundreds of stage POVs in one shared album." },
+  { id: "graduation", label: "Graduations", icon: GraduationCap, img: "https://images.pexels.com/photos/3585047/pexels-photo-3585047.jpeg?auto=compress&w=900",
+    title: "Cap, gown, captured.", sub: "Family photos and cap tosses without the awkward group shot." },
+  { id: "travel", label: "Trips", icon: Plane, img: "https://images.pexels.com/photos/2253879/pexels-photo-2253879.jpeg?auto=compress&w=900",
+    title: "One album. Every angle.", sub: "Group trips become a shared travel diary." },
+];
+
+function HeroSection() {
+  const { t } = useTranslation();
+  const [active, setActive] = useState(0);
+  const uc = USE_CASES[active];
+  return (
+    <section className="relative pt-24 pb-12 sm:pb-20 px-4 bg-gradient-hero">
+      <div className="container max-w-7xl mx-auto">
+        {/* Use-case chips */}
+        <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 sm:justify-center scrollbar-none mb-6">
+          {USE_CASES.map((u, i) => (
+            <button key={u.id} onClick={() => setActive(i)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap border transition-colors shrink-0 ${
+                i === active ? "bg-foreground text-background border-foreground" : "bg-card/60 text-muted-foreground border-border hover:text-foreground"}`}>
+              <u.icon className="w-3.5 h-3.5" /> {u.label}
+            </button>
+          ))}
+        </div>
+        <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+          <div className="space-y-5 sm:space-y-6 text-center lg:text-left order-2 lg:order-1">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-[11px] sm:text-xs font-semibold uppercase tracking-wider">
+              <Sparkles className="w-3 h-3" /> {t("hero_badge")}
+            </div>
+            <AnimatePresence mode="wait">
+              <motion.h1 key={uc.id}
+                initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }}
+                transition={{ duration: 0.4 }}
+                className="font-heading text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-[1.05] tracking-tight uppercase">
+                {uc.title}
+              </motion.h1>
+            </AnimatePresence>
+            <p className="text-base sm:text-lg text-muted-foreground max-w-xl mx-auto lg:mx-0 leading-relaxed">{uc.sub}</p>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center lg:justify-start gap-3">
+              <Button variant="hero" size="lg" className="sm:size-xl" asChild>
+                <Link to="/pricing">{t("cta_create")} <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" /></Link>
+              </Button>
+              <Button variant="glass" size="lg" asChild>
+                <Link to="/camera/demo">{t("cta_try")}</Link>
+              </Button>
+            </div>
+            <div className="flex items-center justify-center lg:justify-start gap-1 pt-1">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Star key={i} className="w-4 h-4 fill-secondary text-secondary" />
+              ))}
+              <span className="text-xs sm:text-sm text-muted-foreground ml-2">{t("rated")}</span>
+            </div>
+          </div>
+          {/* Phone mockup that swaps with use case */}
+          <div className="relative flex items-center justify-center order-1 lg:order-2">
+            <AnimatePresence mode="wait">
+              <motion.div key={uc.id}
+                initial={{ opacity: 0, scale: 0.9, rotate: -4 }}
+                animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                exit={{ opacity: 0, scale: 0.9, rotate: 4 }}
+                transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                className="relative w-[200px] sm:w-[240px] md:w-[280px] aspect-[9/19] rounded-[2.2rem] sm:rounded-[2.5rem] bg-foreground p-2 sm:p-2.5 shadow-2xl">
+                <div className="absolute top-2 sm:top-2.5 left-1/2 -translate-x-1/2 w-16 sm:w-20 h-4 sm:h-5 bg-foreground rounded-b-2xl z-10" />
+                <div className="relative w-full h-full rounded-[1.7rem] sm:rounded-[2rem] overflow-hidden bg-background">
+                  <img src={uc.img} alt={uc.label} className="w-full h-full object-cover" />
+                  <div className="absolute top-3 left-3 text-[10px] font-semibold text-background bg-foreground/40 backdrop-blur rounded-full px-2 py-0.5 uppercase">
+                    {uc.label}
+                  </div>
+                  <div className="absolute bottom-0 inset-x-0 p-3 bg-gradient-to-t from-foreground/70 to-transparent flex items-center justify-center">
+                    <div className="w-12 h-12 rounded-full border-[3px] border-background/80 flex items-center justify-center">
+                      <div className="w-9 h-9 rounded-full bg-background/90" />
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            </AnimatePresence>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export default function LandingPage() {
   const { t } = useTranslation();
+  // Capture ?ref= referral code into localStorage for signup attribution
+  if (typeof window !== "undefined") {
+    const r = new URLSearchParams(window.location.search).get("ref");
+    if (r) localStorage.setItem("pov_ref", r);
+  }
+
 
   return (
     <div className="min-h-screen bg-background text-foreground relative film-grain overflow-hidden">
@@ -92,48 +192,8 @@ export default function LandingPage() {
         </div>
       </nav>
 
-      {/* HERO — POV-inspired dark blue band with phone mockups */}
-      <section className="relative pt-24 pb-16 md:pb-24 px-4 bg-gradient-hero">
-        <div className="container max-w-7xl mx-auto">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <motion.div initial="hidden" animate="visible" className="space-y-6 text-center lg:text-left">
-              <motion.div variants={fadeUp} custom={0}
-                className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-semibold uppercase tracking-wider">
-                <Sparkles className="w-3.5 h-3.5" /> {t("hero_badge")}
-              </motion.div>
-              <motion.h1 variants={fadeUp} custom={1}
-                className="font-heading text-5xl md:text-6xl lg:text-7xl font-bold leading-[1.02] tracking-tight uppercase">
-                {t("hero_title")}<br />
-                <span className="text-gradient-warm">{t("hero_title_2")}</span>
-              </motion.h1>
-              <motion.p variants={fadeUp} custom={2} className="text-lg text-muted-foreground max-w-xl mx-auto lg:mx-0 leading-relaxed">
-                {t("hero_sub")}
-              </motion.p>
-              <motion.div variants={fadeUp} custom={3} className="flex flex-col sm:flex-row items-center lg:items-start justify-center lg:justify-start gap-3 pt-2">
-                <Button variant="hero" size="xl" asChild>
-                  <Link to="/pricing">{t("cta_create")} <ArrowRight className="w-5 h-5" /></Link>
-                </Button>
-                <Button variant="glass" size="lg" asChild>
-                  <Link to="/camera/demo">{t("cta_try")}</Link>
-                </Button>
-              </motion.div>
-              <motion.div variants={fadeUp} custom={4} className="flex items-center justify-center lg:justify-start gap-1 pt-2">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <Star key={i} className="w-4 h-4 fill-secondary text-secondary" />
-                ))}
-                <span className="text-sm text-muted-foreground ml-2">{t("rated")}</span>
-              </motion.div>
-            </motion.div>
-
-            {/* Phone mockup trio */}
-            <div className="relative flex items-center justify-center gap-2 sm:gap-4 lg:gap-2 perspective-1000">
-              <PhoneMock src={hero1} rotate={-8} delay={0.1} />
-              <PhoneMock src={hero2} rotate={0} delay={0.25} />
-              <PhoneMock src={hero3} rotate={8} delay={0.4} />
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* HERO */}
+      <HeroSection />
 
       {/* UGC photo wall */}
       <section id="wall" className="py-12 px-4 relative">

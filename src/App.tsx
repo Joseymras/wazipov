@@ -12,6 +12,7 @@ import CameraPage from "./pages/CameraPage";
 import DashboardPage from "./pages/DashboardPage";
 import DashboardEventsPage from "./pages/DashboardEventsPage";
 import DashboardMusicPage from "./pages/DashboardMusicPage";
+import DashboardMarketingPage from "./pages/DashboardMarketingPage";
 import DashboardPhotobooksPage from "./pages/DashboardPhotobooksPage";
 import DashboardSettingsPage from "./pages/DashboardSettingsPage";
 import PhotobookEditorPage from "./pages/PhotobookEditorPage";
@@ -48,6 +49,7 @@ const App = () => (
             <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
             <Route path="/dashboard/events" element={<ProtectedRoute><DashboardEventsPage /></ProtectedRoute>} />
             <Route path="/dashboard/music" element={<ProtectedRoute><DashboardMusicPage /></ProtectedRoute>} />
+            <Route path="/dashboard/marketing" element={<ProtectedRoute><DashboardMarketingPage /></ProtectedRoute>} />
             <Route path="/dashboard/photobooks" element={<ProtectedRoute><DashboardPhotobooksPage /></ProtectedRoute>} />
             <Route path="/dashboard/settings" element={<ProtectedRoute><DashboardSettingsPage /></ProtectedRoute>} />
             <Route path="/photobooks/:bookId" element={<ProtectedRoute><PhotobookEditorPage /></ProtectedRoute>} />
