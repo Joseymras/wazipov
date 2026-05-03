@@ -1,7 +1,7 @@
 // Photobook editor: pick template + page size, drag to rearrange spreads, export PDF.
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, Download, Plus, GripVertical, Trash2, Save } from "lucide-react";
+import { ArrowLeft, Download, Plus, GripVertical, Trash2, Save, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -62,6 +62,25 @@ export default function PhotobookEditorPage() {
     setSaving(false); toast({ title: "Saved" });
   }
 
+  async function aiLayout() {
+    setSaving(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("photobook-autolayout", {
+        body: { event_id: book.event_id, template: book.template },
+      });
+      if (error) throw error;
+      if (data?.spreads?.length) {
+        setSpreads(data.spreads);
+        toast({ title: `Generated ${data.spreads.length} spreads ✨` });
+      } else {
+        toast({ title: "No photos found for this event" });
+      }
+    } catch (e: any) {
+      toast({ title: "AI layout failed", description: e.message, variant: "destructive" });
+    }
+    setSaving(false);
+  }
+
   async function exportPDF() {
     // Open print dialog — simplest reliable PDF export across browsers.
     window.print();
@@ -84,7 +103,8 @@ export default function PhotobookEditorPage() {
           <select value={book.template} onChange={e => setBook({ ...book, template: e.target.value })} className="bg-card border border-border rounded-md text-sm h-9 px-2">
             {TEMPLATES.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
           </select>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
+            <Button onClick={aiLayout} disabled={saving} variant="outline" className="rounded-full"><Sparkles className="w-4 h-4" /> AI layout</Button>
             <Button onClick={save} disabled={saving} variant="outline" className="rounded-full"><Save className="w-4 h-4" /> {saving ? "Saving…" : "Save"}</Button>
             <Button onClick={exportPDF} className="rounded-full"><Download className="w-4 h-4" /> Export PDF</Button>
           </div>
