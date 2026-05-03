@@ -33,9 +33,9 @@ export default function PaymentSuccessPage() {
   }, [params]);
 
   return (
-    <div className="min-h-screen bg-gradient-hero flex items-center justify-center px-4">
+    <div className="min-h-screen bg-background flex items-center justify-center px-4">
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-        className="glass-card rounded-3xl p-10 max-w-md w-full text-center space-y-5"
+        className="rounded-3xl border border-border bg-card p-10 max-w-md w-full text-center space-y-5"
       >
         {status === "verifying" && (
           <>

@@ -155,6 +155,11 @@ function HeroSection() {
 
 export default function LandingPage() {
   const { t } = useTranslation();
+  // Capture ?ref= referral code into localStorage for signup attribution
+  if (typeof window !== "undefined") {
+    const r = new URLSearchParams(window.location.search).get("ref");
+    if (r) localStorage.setItem("pov_ref", r);
+  }
 
 
   return (
