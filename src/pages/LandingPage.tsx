@@ -152,7 +152,10 @@ function HeroSection() {
     </section>
   );
 }
+
+export default function LandingPage() {
   const { t } = useTranslation();
+
 
   return (
     <div className="min-h-screen bg-background text-foreground relative film-grain overflow-hidden">
