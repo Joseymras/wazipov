@@ -1,5 +1,6 @@
-import { motion } from "framer-motion";
-import { Camera, Sparkles, Clock, QrCode, ArrowRight, Star, BookOpen, Mic, Wand2, Lock, Globe } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useState } from "react";
+import { Camera, Sparkles, Clock, QrCode, ArrowRight, Star, BookOpen, Mic, Wand2, Lock, Globe, Heart, Cake, Briefcase, PartyPopper, GraduationCap, Music, Plane } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
