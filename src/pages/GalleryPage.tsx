@@ -306,9 +306,14 @@ export default function GalleryPage() {
                   Download ZIP
                 </Button>
                 {isHost && (
-                  <Button variant="glass" size="sm" onClick={exportPhotobook} disabled={busy !== null || !photos.length}>
+                  <Button variant="glass" size="sm" onClick={() => setShowTemplates(true)} disabled={busy !== null || !photos.length}>
                     {busy === "pdf" ? <Loader2 className="w-4 h-4 animate-spin" /> : <BookOpen className="w-4 h-4" />}
                     Photobook PDF
+                  </Button>
+                )}
+                {!isHost && (
+                  <Button variant="glass" size="sm" onClick={() => unlocked ? null : setShowUnlock(true)}>
+                    {unlocked ? <><Sparkles className="w-4 h-4" /> Unlocked</> : <><Coins className="w-4 h-4" /> Unlock · Ksh {UNLOCK_COST * KES_PER_TOKEN}</>}
                   </Button>
                 )}
                 <Button variant="glass" size="sm" onClick={shareGallery}>
