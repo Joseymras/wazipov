@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Download, ArrowLeft, Lock, Eye, X, Trash2, Share2, BookOpen, Loader2 } from "lucide-react";
+import { Download, ArrowLeft, Lock, Eye, X, Trash2, Share2, BookOpen, Loader2, Coins, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,6 +11,16 @@ import JSZip from "jszip";
 import jsPDF from "jspdf";
 import AudioGuestbook from "@/components/AudioGuestbook";
 import AdSlot from "@/components/AdSlot";
+import { getOwnerKey, getOrCreateWallet, isUnlocked, spendTokensToUnlock, KES_PER_TOKEN, UNLOCK_COST } from "@/lib/wallet";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+
+type PdfTemplate = "classic" | "polaroid" | "magazine" | "minimal";
+const PDF_TEMPLATES: { id: PdfTemplate; name: string; desc: string }[] = [
+  { id: "classic", name: "Classic", desc: "Bold cover, 2×2 grid spreads" },
+  { id: "polaroid", name: "Polaroid", desc: "Tilted instant-photo collage" },
+  { id: "magazine", name: "Magazine", desc: "Editorial hero + caption" },
+  { id: "minimal", name: "Minimal", desc: "Clean white, one photo per page" },
+];
 
 interface Photo {
   id: string;
