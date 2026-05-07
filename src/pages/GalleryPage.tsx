@@ -403,6 +403,44 @@ export default function GalleryPage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Unlock dialog */}
+      <Dialog open={showUnlock} onOpenChange={setShowUnlock}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Unlock this gallery</DialogTitle>
+            <DialogDescription>
+              Spend {UNLOCK_COST} token (Ksh {UNLOCK_COST * KES_PER_TOKEN}) to download every photo. Your wallet: <b>{balance}</b> tokens.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-2 pt-2">
+            <Button onClick={unlockGallery} disabled={busy === "unlock" || balance < UNLOCK_COST}>
+              {busy === "unlock" ? <Loader2 className="w-4 h-4 animate-spin" /> : <Coins className="w-4 h-4" />}
+              Unlock now
+            </Button>
+            <Button variant="outline" onClick={topUp}>Top up · 5 tokens (Ksh {5 * KES_PER_TOKEN})</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Template picker */}
+      <Dialog open={showTemplates} onOpenChange={setShowTemplates}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Choose a photobook style</DialogTitle>
+            <DialogDescription>Inspired by Canva — pick a layout and we'll generate the PDF.</DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-2 pt-2">
+            {PDF_TEMPLATES.map(t => (
+              <button key={t.id} onClick={() => exportPhotobook(t.id)}
+                className="text-left rounded-xl border border-border p-3 hover:bg-secondary transition-colors">
+                <div className="font-semibold text-sm">{t.name}</div>
+                <div className="text-xs text-muted-foreground mt-0.5">{t.desc}</div>
+              </button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
