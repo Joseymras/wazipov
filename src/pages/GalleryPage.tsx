@@ -44,9 +44,47 @@ export default function GalleryPage() {
   const [isHost, setIsHost] = useState(false);
   const [filter, setFilter] = useState<"all" | "my_pov">("all");
   const [guestId, setGuestId] = useState<string | null>(null);
-  const [busy, setBusy] = useState<"zip" | "pdf" | null>(null);
+  const [busy, setBusy] = useState<"zip" | "pdf" | "unlock" | null>(null);
+  const [unlocked, setUnlocked] = useState(false);
+  const [balance, setBalance] = useState(0);
+  const [showUnlock, setShowUnlock] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
 
-  useEffect(() => { loadGallery(); }, [eventId, user]);
+  useEffect(() => { loadGallery(); checkUnlock(); }, [eventId, user]);
+
+  async function checkUnlock() {
+    if (!eventId) return;
+    const key = getOwnerKey(user?.id);
+    const [u, w] = await Promise.all([isUnlocked(eventId, key), getOrCreateWallet(key)]);
+    setUnlocked(u);
+    setBalance(w?.balance_tokens ?? 0);
+  }
+
+  async function topUp() {
+    try {
+      const { data, error } = await supabase.functions.invoke("wallet-topup", {
+        body: { tokens: 5, owner_key: getOwnerKey(user?.id), callback_url: window.location.href },
+      });
+      const url = data?.authorization_url || data?.url;
+      if (error || !url) throw new Error(data?.error || "Top-up failed");
+      window.location.href = url;
+    } catch (e: any) {
+      toast({ title: "Top-up error", description: e.message, variant: "destructive" });
+    }
+  }
+
+  async function unlockGallery() {
+    if (!eventId) return;
+    setBusy("unlock");
+    const key = getOwnerKey(user?.id);
+    const res = await spendTokensToUnlock(eventId, key);
+    setBusy(null);
+    if (!res.ok) { toast({ title: "Not enough tokens", description: `Top up to unlock for ${UNLOCK_COST} token (Ksh ${UNLOCK_COST * KES_PER_TOKEN})` }); return; }
+    setUnlocked(true);
+    setShowUnlock(false);
+    toast({ title: "Gallery unlocked!" });
+    checkUnlock();
+  }
 
   async function loadGallery() {
     const { data: evt } = await supabase.from("events").select("*").eq("id", eventId).single();
