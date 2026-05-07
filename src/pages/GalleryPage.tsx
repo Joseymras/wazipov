@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Download, ArrowLeft, Lock, Eye, X, Trash2, Share2, BookOpen, Loader2 } from "lucide-react";
+import { Download, ArrowLeft, Lock, Eye, X, Trash2, Share2, BookOpen, Loader2, Coins, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,6 +11,16 @@ import JSZip from "jszip";
 import jsPDF from "jspdf";
 import AudioGuestbook from "@/components/AudioGuestbook";
 import AdSlot from "@/components/AdSlot";
+import { getOwnerKey, getOrCreateWallet, isUnlocked, spendTokensToUnlock, KES_PER_TOKEN, UNLOCK_COST } from "@/lib/wallet";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+
+type PdfTemplate = "classic" | "polaroid" | "magazine" | "minimal";
+const PDF_TEMPLATES: { id: PdfTemplate; name: string; desc: string }[] = [
+  { id: "classic", name: "Classic", desc: "Bold cover, 2×2 grid spreads" },
+  { id: "polaroid", name: "Polaroid", desc: "Tilted instant-photo collage" },
+  { id: "magazine", name: "Magazine", desc: "Editorial hero + caption" },
+  { id: "minimal", name: "Minimal", desc: "Clean white, one photo per page" },
+];
 
 interface Photo {
   id: string;
@@ -34,9 +44,47 @@ export default function GalleryPage() {
   const [isHost, setIsHost] = useState(false);
   const [filter, setFilter] = useState<"all" | "my_pov">("all");
   const [guestId, setGuestId] = useState<string | null>(null);
-  const [busy, setBusy] = useState<"zip" | "pdf" | null>(null);
+  const [busy, setBusy] = useState<"zip" | "pdf" | "unlock" | null>(null);
+  const [unlocked, setUnlocked] = useState(false);
+  const [balance, setBalance] = useState(0);
+  const [showUnlock, setShowUnlock] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
 
-  useEffect(() => { loadGallery(); }, [eventId, user]);
+  useEffect(() => { loadGallery(); checkUnlock(); }, [eventId, user]);
+
+  async function checkUnlock() {
+    if (!eventId) return;
+    const key = getOwnerKey(user?.id);
+    const [u, w] = await Promise.all([isUnlocked(eventId, key), getOrCreateWallet(key)]);
+    setUnlocked(u);
+    setBalance(w?.balance_tokens ?? 0);
+  }
+
+  async function topUp() {
+    try {
+      const { data, error } = await supabase.functions.invoke("wallet-topup", {
+        body: { tokens: 5, owner_key: getOwnerKey(user?.id), callback_url: window.location.href },
+      });
+      const url = data?.authorization_url || data?.url;
+      if (error || !url) throw new Error(data?.error || "Top-up failed");
+      window.location.href = url;
+    } catch (e: any) {
+      toast({ title: "Top-up error", description: e.message, variant: "destructive" });
+    }
+  }
+
+  async function unlockGallery() {
+    if (!eventId) return;
+    setBusy("unlock");
+    const key = getOwnerKey(user?.id);
+    const res = await spendTokensToUnlock(eventId, key);
+    setBusy(null);
+    if (!res.ok) { toast({ title: "Not enough tokens", description: `Top up to unlock for ${UNLOCK_COST} token (Ksh ${UNLOCK_COST * KES_PER_TOKEN})` }); return; }
+    setUnlocked(true);
+    setShowUnlock(false);
+    toast({ title: "Gallery unlocked!" });
+    checkUnlock();
+  }
 
   async function loadGallery() {
     const { data: evt } = await supabase.from("events").select("*").eq("id", eventId).single();
@@ -78,6 +126,7 @@ export default function GalleryPage() {
 
   async function downloadAllZip() {
     if (!photos.length) return;
+    if (!isHost && !unlocked) { setShowUnlock(true); return; }
     setBusy("zip");
     try {
       const zip = new JSZip();
@@ -103,47 +152,103 @@ export default function GalleryPage() {
     setBusy(null);
   }
 
-  async function exportPhotobook() {
+  async function exportPhotobook(template: PdfTemplate = "classic") {
     if (!photos.length) return;
+    setShowTemplates(false);
     setBusy("pdf");
     try {
       const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
       const W = 210, H = 297, M = 15;
-
-      // Cover
-      pdf.setFillColor(232, 93, 58);
-      pdf.rect(0, 0, W, H, "F");
-      pdf.setTextColor(255, 255, 255);
-      pdf.setFont("helvetica", "bold");
-      pdf.setFontSize(36);
-      pdf.text(event?.name || "POV Album", W / 2, H / 2 - 10, { align: "center" });
-      pdf.setFontSize(14);
-      pdf.setFont("helvetica", "normal");
       const dateStr = event?.event_date ? new Date(event.event_date).toLocaleDateString() : "";
-      pdf.text(dateStr, W / 2, H / 2 + 5, { align: "center" });
-      pdf.setFontSize(10);
-      pdf.text(`${photos.length} moments captured`, W / 2, H - 25, { align: "center" });
 
-      // 4 photos per page grid
-      const cols = 2, rows = 2;
-      const cellW = (W - M * 3) / cols;
-      const cellH = (H - M * 3) / rows;
+      // ---------- COVER ----------
+      if (template === "minimal") {
+        pdf.setFillColor(255, 255, 255); pdf.rect(0, 0, W, H, "F");
+        pdf.setTextColor(0, 0, 0);
+        pdf.setFont("helvetica", "bold"); pdf.setFontSize(48);
+        pdf.text(event?.name || "Album", M, H / 2, { maxWidth: W - 2 * M });
+        pdf.setFont("helvetica", "normal"); pdf.setFontSize(11);
+        pdf.text(dateStr, M, H / 2 + 14);
+      } else if (template === "magazine") {
+        pdf.setFillColor(20, 20, 20); pdf.rect(0, 0, W, H, "F");
+        if (photos[0]?.url) {
+          try { pdf.addImage(await fetchAsDataUrl(photos[0].url), "JPEG", 0, 0, W, H * 0.65, undefined, "MEDIUM"); } catch {}
+        }
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFont("helvetica", "bold"); pdf.setFontSize(40);
+        pdf.text(event?.name || "Album", M, H * 0.78, { maxWidth: W - 2 * M });
+        pdf.setFontSize(11); pdf.setFont("helvetica", "normal");
+        pdf.text(`${dateStr} · ${photos.length} moments`, M, H * 0.86);
+      } else if (template === "polaroid") {
+        pdf.setFillColor(245, 240, 230); pdf.rect(0, 0, W, H, "F");
+        pdf.setTextColor(40, 30, 20);
+        pdf.setFont("helvetica", "bold"); pdf.setFontSize(32);
+        pdf.text(event?.name || "Memories", W / 2, 40, { align: "center" });
+        pdf.setFont("helvetica", "italic"); pdf.setFontSize(12);
+        pdf.text(dateStr, W / 2, 50, { align: "center" });
+      } else {
+        pdf.setFillColor(0, 0, 0); pdf.rect(0, 0, W, H, "F");
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFont("helvetica", "bold"); pdf.setFontSize(36);
+        pdf.text(event?.name || "POV Album", W / 2, H / 2 - 10, { align: "center" });
+        pdf.setFontSize(14); pdf.setFont("helvetica", "normal");
+        pdf.text(dateStr, W / 2, H / 2 + 5, { align: "center" });
+        pdf.setFontSize(10);
+        pdf.text(`${photos.length} moments captured`, W / 2, H - 25, { align: "center" });
+      }
 
+      // ---------- PAGES ----------
       for (let i = 0; i < photos.length; i++) {
         const p = photos[i];
         if (!p.url) continue;
-        if (i % (cols * rows) === 0) pdf.addPage();
-        const idx = i % (cols * rows);
-        const col = idx % cols, row = Math.floor(idx / cols);
-        const x = M + col * (cellW + M);
-        const y = M + row * (cellH + M);
-        try {
-          const dataUrl = await fetchAsDataUrl(p.url);
+        let dataUrl: string;
+        try { dataUrl = await fetchAsDataUrl(p.url); } catch { continue; }
+
+        if (template === "minimal") {
+          pdf.addPage();
+          pdf.setFillColor(255, 255, 255); pdf.rect(0, 0, W, H, "F");
+          pdf.addImage(dataUrl, "JPEG", M, M, W - 2 * M, H - 2 * M - 12, undefined, "MEDIUM");
+          if (p.ai_caption) {
+            pdf.setTextColor(80, 80, 80); pdf.setFont("helvetica", "italic"); pdf.setFontSize(9);
+            pdf.text(p.ai_caption.slice(0, 90), W / 2, H - 8, { align: "center" });
+          }
+        } else if (template === "magazine") {
+          pdf.addPage();
+          pdf.setFillColor(255, 255, 255); pdf.rect(0, 0, W, H, "F");
+          pdf.addImage(dataUrl, "JPEG", 0, 0, W, H * 0.6, undefined, "MEDIUM");
+          pdf.setTextColor(20, 20, 20);
+          pdf.setFont("helvetica", "bold"); pdf.setFontSize(18);
+          pdf.text(`Moment ${String(i + 1).padStart(2, "0")}`, M, H * 0.6 + 18);
+          pdf.setFont("helvetica", "normal"); pdf.setFontSize(10);
+          pdf.text(p.ai_caption || "Captured by a guest's POV.", M, H * 0.6 + 28, { maxWidth: W - 2 * M });
+        } else if (template === "polaroid") {
+          if (i % 2 === 0) {
+            pdf.addPage();
+            pdf.setFillColor(245, 240, 230); pdf.rect(0, 0, W, H, "F");
+          }
+          const slot = i % 2;
+          const cx = W / 2, cy = slot === 0 ? H * 0.3 : H * 0.72;
+          const size = 90;
+          pdf.setFillColor(255, 255, 255);
+          pdf.rect(cx - size / 2 - 5, cy - size / 2 - 5, size + 10, size + 25, "F");
+          pdf.addImage(dataUrl, "JPEG", cx - size / 2, cy - size / 2, size, size, undefined, "MEDIUM");
+          pdf.setTextColor(40, 30, 20); pdf.setFont("helvetica", "italic"); pdf.setFontSize(10);
+          pdf.text(p.ai_caption?.slice(0, 40) || "memory", cx, cy + size / 2 + 12, { align: "center" });
+        } else {
+          // classic 2x2 grid
+          const cols = 2, rows = 2;
+          const cellW = (W - M * 3) / cols;
+          const cellH = (H - M * 3) / rows;
+          if (i % (cols * rows) === 0) pdf.addPage();
+          const idx = i % (cols * rows);
+          const col = idx % cols, row = Math.floor(idx / cols);
+          const x = M + col * (cellW + M);
+          const y = M + row * (cellH + M);
           pdf.addImage(dataUrl, "JPEG", x, y, cellW, cellH, undefined, "MEDIUM");
-        } catch { /* skip */ }
+        }
       }
-      pdf.save(`${event?.name || "pov-album"}-photobook.pdf`);
-      toast({ title: "Photobook PDF ready!" });
+      pdf.save(`${event?.name || "pov-album"}-${template}.pdf`);
+      toast({ title: `${template} photobook ready!` });
     } catch (err: any) {
       toast({ title: "Export failed", description: err.message, variant: "destructive" });
     }
@@ -201,9 +306,14 @@ export default function GalleryPage() {
                   Download ZIP
                 </Button>
                 {isHost && (
-                  <Button variant="glass" size="sm" onClick={exportPhotobook} disabled={busy !== null || !photos.length}>
+                  <Button variant="glass" size="sm" onClick={() => setShowTemplates(true)} disabled={busy !== null || !photos.length}>
                     {busy === "pdf" ? <Loader2 className="w-4 h-4 animate-spin" /> : <BookOpen className="w-4 h-4" />}
                     Photobook PDF
+                  </Button>
+                )}
+                {!isHost && (
+                  <Button variant="glass" size="sm" onClick={() => unlocked ? null : setShowUnlock(true)}>
+                    {unlocked ? <><Sparkles className="w-4 h-4" /> Unlocked</> : <><Coins className="w-4 h-4" /> Unlock · Ksh {UNLOCK_COST * KES_PER_TOKEN}</>}
                   </Button>
                 )}
                 <Button variant="glass" size="sm" onClick={shareGallery}>
@@ -293,6 +403,44 @@ export default function GalleryPage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Unlock dialog */}
+      <Dialog open={showUnlock} onOpenChange={setShowUnlock}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Unlock this gallery</DialogTitle>
+            <DialogDescription>
+              Spend {UNLOCK_COST} token (Ksh {UNLOCK_COST * KES_PER_TOKEN}) to download every photo. Your wallet: <b>{balance}</b> tokens.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-2 pt-2">
+            <Button onClick={unlockGallery} disabled={busy === "unlock" || balance < UNLOCK_COST}>
+              {busy === "unlock" ? <Loader2 className="w-4 h-4 animate-spin" /> : <Coins className="w-4 h-4" />}
+              Unlock now
+            </Button>
+            <Button variant="outline" onClick={topUp}>Top up · 5 tokens (Ksh {5 * KES_PER_TOKEN})</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Template picker */}
+      <Dialog open={showTemplates} onOpenChange={setShowTemplates}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Choose a photobook style</DialogTitle>
+            <DialogDescription>Inspired by Canva — pick a layout and we'll generate the PDF.</DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-2 pt-2">
+            {PDF_TEMPLATES.map(t => (
+              <button key={t.id} onClick={() => exportPhotobook(t.id)}
+                className="text-left rounded-xl border border-border p-3 hover:bg-secondary transition-colors">
+                <div className="font-semibold text-sm">{t.name}</div>
+                <div className="text-xs text-muted-foreground mt-0.5">{t.desc}</div>
+              </button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
