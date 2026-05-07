@@ -126,6 +126,7 @@ export default function GalleryPage() {
 
   async function downloadAllZip() {
     if (!photos.length) return;
+    if (!isHost && !unlocked) { setShowUnlock(true); return; }
     setBusy("zip");
     try {
       const zip = new JSZip();
@@ -151,47 +152,103 @@ export default function GalleryPage() {
     setBusy(null);
   }
 
-  async function exportPhotobook() {
+  async function exportPhotobook(template: PdfTemplate = "classic") {
     if (!photos.length) return;
+    setShowTemplates(false);
     setBusy("pdf");
     try {
       const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
       const W = 210, H = 297, M = 15;
-
-      // Cover
-      pdf.setFillColor(232, 93, 58);
-      pdf.rect(0, 0, W, H, "F");
-      pdf.setTextColor(255, 255, 255);
-      pdf.setFont("helvetica", "bold");
-      pdf.setFontSize(36);
-      pdf.text(event?.name || "POV Album", W / 2, H / 2 - 10, { align: "center" });
-      pdf.setFontSize(14);
-      pdf.setFont("helvetica", "normal");
       const dateStr = event?.event_date ? new Date(event.event_date).toLocaleDateString() : "";
-      pdf.text(dateStr, W / 2, H / 2 + 5, { align: "center" });
-      pdf.setFontSize(10);
-      pdf.text(`${photos.length} moments captured`, W / 2, H - 25, { align: "center" });
 
-      // 4 photos per page grid
-      const cols = 2, rows = 2;
-      const cellW = (W - M * 3) / cols;
-      const cellH = (H - M * 3) / rows;
+      // ---------- COVER ----------
+      if (template === "minimal") {
+        pdf.setFillColor(255, 255, 255); pdf.rect(0, 0, W, H, "F");
+        pdf.setTextColor(0, 0, 0);
+        pdf.setFont("helvetica", "bold"); pdf.setFontSize(48);
+        pdf.text(event?.name || "Album", M, H / 2, { maxWidth: W - 2 * M });
+        pdf.setFont("helvetica", "normal"); pdf.setFontSize(11);
+        pdf.text(dateStr, M, H / 2 + 14);
+      } else if (template === "magazine") {
+        pdf.setFillColor(20, 20, 20); pdf.rect(0, 0, W, H, "F");
+        if (photos[0]?.url) {
+          try { pdf.addImage(await fetchAsDataUrl(photos[0].url), "JPEG", 0, 0, W, H * 0.65, undefined, "MEDIUM"); } catch {}
+        }
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFont("helvetica", "bold"); pdf.setFontSize(40);
+        pdf.text(event?.name || "Album", M, H * 0.78, { maxWidth: W - 2 * M });
+        pdf.setFontSize(11); pdf.setFont("helvetica", "normal");
+        pdf.text(`${dateStr} · ${photos.length} moments`, M, H * 0.86);
+      } else if (template === "polaroid") {
+        pdf.setFillColor(245, 240, 230); pdf.rect(0, 0, W, H, "F");
+        pdf.setTextColor(40, 30, 20);
+        pdf.setFont("helvetica", "bold"); pdf.setFontSize(32);
+        pdf.text(event?.name || "Memories", W / 2, 40, { align: "center" });
+        pdf.setFont("helvetica", "italic"); pdf.setFontSize(12);
+        pdf.text(dateStr, W / 2, 50, { align: "center" });
+      } else {
+        pdf.setFillColor(0, 0, 0); pdf.rect(0, 0, W, H, "F");
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFont("helvetica", "bold"); pdf.setFontSize(36);
+        pdf.text(event?.name || "POV Album", W / 2, H / 2 - 10, { align: "center" });
+        pdf.setFontSize(14); pdf.setFont("helvetica", "normal");
+        pdf.text(dateStr, W / 2, H / 2 + 5, { align: "center" });
+        pdf.setFontSize(10);
+        pdf.text(`${photos.length} moments captured`, W / 2, H - 25, { align: "center" });
+      }
 
+      // ---------- PAGES ----------
       for (let i = 0; i < photos.length; i++) {
         const p = photos[i];
         if (!p.url) continue;
-        if (i % (cols * rows) === 0) pdf.addPage();
-        const idx = i % (cols * rows);
-        const col = idx % cols, row = Math.floor(idx / cols);
-        const x = M + col * (cellW + M);
-        const y = M + row * (cellH + M);
-        try {
-          const dataUrl = await fetchAsDataUrl(p.url);
+        let dataUrl: string;
+        try { dataUrl = await fetchAsDataUrl(p.url); } catch { continue; }
+
+        if (template === "minimal") {
+          pdf.addPage();
+          pdf.setFillColor(255, 255, 255); pdf.rect(0, 0, W, H, "F");
+          pdf.addImage(dataUrl, "JPEG", M, M, W - 2 * M, H - 2 * M - 12, undefined, "MEDIUM");
+          if (p.ai_caption) {
+            pdf.setTextColor(80, 80, 80); pdf.setFont("helvetica", "italic"); pdf.setFontSize(9);
+            pdf.text(p.ai_caption.slice(0, 90), W / 2, H - 8, { align: "center" });
+          }
+        } else if (template === "magazine") {
+          pdf.addPage();
+          pdf.setFillColor(255, 255, 255); pdf.rect(0, 0, W, H, "F");
+          pdf.addImage(dataUrl, "JPEG", 0, 0, W, H * 0.6, undefined, "MEDIUM");
+          pdf.setTextColor(20, 20, 20);
+          pdf.setFont("helvetica", "bold"); pdf.setFontSize(18);
+          pdf.text(`Moment ${String(i + 1).padStart(2, "0")}`, M, H * 0.6 + 18);
+          pdf.setFont("helvetica", "normal"); pdf.setFontSize(10);
+          pdf.text(p.ai_caption || "Captured by a guest's POV.", M, H * 0.6 + 28, { maxWidth: W - 2 * M });
+        } else if (template === "polaroid") {
+          if (i % 2 === 0) {
+            pdf.addPage();
+            pdf.setFillColor(245, 240, 230); pdf.rect(0, 0, W, H, "F");
+          }
+          const slot = i % 2;
+          const cx = W / 2, cy = slot === 0 ? H * 0.3 : H * 0.72;
+          const size = 90;
+          pdf.setFillColor(255, 255, 255);
+          pdf.rect(cx - size / 2 - 5, cy - size / 2 - 5, size + 10, size + 25, "F");
+          pdf.addImage(dataUrl, "JPEG", cx - size / 2, cy - size / 2, size, size, undefined, "MEDIUM");
+          pdf.setTextColor(40, 30, 20); pdf.setFont("helvetica", "italic"); pdf.setFontSize(10);
+          pdf.text(p.ai_caption?.slice(0, 40) || "memory", cx, cy + size / 2 + 12, { align: "center" });
+        } else {
+          // classic 2x2 grid
+          const cols = 2, rows = 2;
+          const cellW = (W - M * 3) / cols;
+          const cellH = (H - M * 3) / rows;
+          if (i % (cols * rows) === 0) pdf.addPage();
+          const idx = i % (cols * rows);
+          const col = idx % cols, row = Math.floor(idx / cols);
+          const x = M + col * (cellW + M);
+          const y = M + row * (cellH + M);
           pdf.addImage(dataUrl, "JPEG", x, y, cellW, cellH, undefined, "MEDIUM");
-        } catch { /* skip */ }
+        }
       }
-      pdf.save(`${event?.name || "pov-album"}-photobook.pdf`);
-      toast({ title: "Photobook PDF ready!" });
+      pdf.save(`${event?.name || "pov-album"}-${template}.pdf`);
+      toast({ title: `${template} photobook ready!` });
     } catch (err: any) {
       toast({ title: "Export failed", description: err.message, variant: "destructive" });
     }
