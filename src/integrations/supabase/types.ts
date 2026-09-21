@@ -14,6 +14,41 @@ export type Database = {
   }
   public: {
     Tables: {
+      analytics_events: {
+        Row: {
+          created_at: string
+          event_id: string | null
+          guest_session_id: string | null
+          id: string
+          metadata: Json
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          event_id?: string | null
+          guest_session_id?: string | null
+          id?: string
+          metadata?: Json
+          name: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string | null
+          guest_session_id?: string | null
+          id?: string
+          metadata?: Json
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analytics_events_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audio_guestbook: {
         Row: {
           created_at: string
@@ -59,6 +94,36 @@ export type Database = {
           },
         ]
       }
+      audit_logs: {
+        Row: {
+          action: string
+          admin_id: string | null
+          created_at: string
+          id: string
+          metadata: Json
+          resource_id: string | null
+          resource_type: string | null
+        }
+        Insert: {
+          action: string
+          admin_id?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json
+          resource_id?: string | null
+          resource_type?: string | null
+        }
+        Update: {
+          action?: string
+          admin_id?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json
+          resource_id?: string | null
+          resource_type?: string | null
+        }
+        Relationships: []
+      }
       event_guests: {
         Row: {
           claimed_by_user_id: string | null
@@ -99,6 +164,7 @@ export type Database = {
       }
       events: {
         Row: {
+          allow_downloads: boolean
           allow_greenscreen: boolean
           allow_music: boolean
           allow_video: boolean
@@ -108,22 +174,32 @@ export type Database = {
           cover_photo_url: string | null
           created_at: string
           description: string | null
+          ends_at: string | null
           event_date: string | null
+          event_pin: string | null
           featured_image_url: string | null
           filter_preset: string
           gallery_type: Database["public"]["Enums"]["gallery_type"]
+          guest_gallery_enabled: boolean
+          guest_limit: number
           host_id: string
+          host_name: string | null
           id: string
           is_active: boolean
           is_public: boolean
+          location: string | null
+          moderation_enabled: boolean
           name: string
+          public_code: string
           qr_code_url: string | null
+          require_nickname: boolean
           reveal_date: string | null
           reveal_timing: Database["public"]["Enums"]["reveal_timing"]
           scavenger_prompts: string[] | null
           short_link: string | null
           snaps_per_guest: number
           soundtrack_id: string | null
+          status: Database["public"]["Enums"]["event_status"]
           theme_color: string | null
           updated_at: string
           use_case: string
@@ -131,6 +207,7 @@ export type Database = {
           welcome_message: string | null
         }
         Insert: {
+          allow_downloads?: boolean
           allow_greenscreen?: boolean
           allow_music?: boolean
           allow_video?: boolean
@@ -140,22 +217,32 @@ export type Database = {
           cover_photo_url?: string | null
           created_at?: string
           description?: string | null
+          ends_at?: string | null
           event_date?: string | null
+          event_pin?: string | null
           featured_image_url?: string | null
           filter_preset?: string
           gallery_type?: Database["public"]["Enums"]["gallery_type"]
+          guest_gallery_enabled?: boolean
+          guest_limit?: number
           host_id: string
+          host_name?: string | null
           id?: string
           is_active?: boolean
           is_public?: boolean
+          location?: string | null
+          moderation_enabled?: boolean
           name: string
+          public_code: string
           qr_code_url?: string | null
+          require_nickname?: boolean
           reveal_date?: string | null
           reveal_timing?: Database["public"]["Enums"]["reveal_timing"]
           scavenger_prompts?: string[] | null
           short_link?: string | null
           snaps_per_guest?: number
           soundtrack_id?: string | null
+          status?: Database["public"]["Enums"]["event_status"]
           theme_color?: string | null
           updated_at?: string
           use_case?: string
@@ -163,6 +250,7 @@ export type Database = {
           welcome_message?: string | null
         }
         Update: {
+          allow_downloads?: boolean
           allow_greenscreen?: boolean
           allow_music?: boolean
           allow_video?: boolean
@@ -172,22 +260,32 @@ export type Database = {
           cover_photo_url?: string | null
           created_at?: string
           description?: string | null
+          ends_at?: string | null
           event_date?: string | null
+          event_pin?: string | null
           featured_image_url?: string | null
           filter_preset?: string
           gallery_type?: Database["public"]["Enums"]["gallery_type"]
+          guest_gallery_enabled?: boolean
+          guest_limit?: number
           host_id?: string
+          host_name?: string | null
           id?: string
           is_active?: boolean
           is_public?: boolean
+          location?: string | null
+          moderation_enabled?: boolean
           name?: string
+          public_code?: string
           qr_code_url?: string | null
+          require_nickname?: boolean
           reveal_date?: string | null
           reveal_timing?: Database["public"]["Enums"]["reveal_timing"]
           scavenger_prompts?: string[] | null
           short_link?: string | null
           snaps_per_guest?: number
           soundtrack_id?: string | null
+          status?: Database["public"]["Enums"]["event_status"]
           theme_color?: string | null
           updated_at?: string
           use_case?: string
@@ -217,6 +315,65 @@ export type Database = {
         }
         Relationships: []
       }
+      payments: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          customer_email: string | null
+          event_id: string | null
+          id: string
+          metadata: Json
+          paid_at: string | null
+          plan_id: string | null
+          provider: string
+          provider_reference: string
+          status: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          customer_email?: string | null
+          event_id?: string | null
+          id?: string
+          metadata?: Json
+          paid_at?: string | null
+          plan_id?: string | null
+          provider?: string
+          provider_reference: string
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          customer_email?: string | null
+          event_id?: string | null
+          id?: string
+          metadata?: Json
+          paid_at?: string | null
+          plan_id?: string | null
+          provider?: string
+          provider_reference?: string
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       photo_likes: {
         Row: {
           created_at: string
@@ -237,6 +394,51 @@ export type Database = {
           photo_id?: string
         }
         Relationships: []
+      }
+      photo_reports: {
+        Row: {
+          created_at: string
+          event_id: string
+          id: string
+          photo_id: string
+          reason: string | null
+          reporter_session: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          id?: string
+          photo_id: string
+          reason?: string | null
+          reporter_session?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          id?: string
+          photo_id?: string
+          reason?: string | null
+          reporter_session?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "photo_reports_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "photo_reports_photo_id_fkey"
+            columns: ["photo_id"]
+            isOneToOne: false
+            referencedRelation: "photos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       photobooks: {
         Row: {
@@ -296,6 +498,8 @@ export type Database = {
           is_revealed: boolean
           media_type: string
           mood_tag: string | null
+          nickname: string | null
+          status: Database["public"]["Enums"]["photo_status"]
           storage_path: string
           thumbnail_path: string | null
         }
@@ -309,6 +513,8 @@ export type Database = {
           is_revealed?: boolean
           media_type?: string
           mood_tag?: string | null
+          nickname?: string | null
+          status?: Database["public"]["Enums"]["photo_status"]
           storage_path: string
           thumbnail_path?: string | null
         }
@@ -322,6 +528,8 @@ export type Database = {
           is_revealed?: boolean
           media_type?: string
           mood_tag?: string | null
+          nickname?: string | null
+          status?: Database["public"]["Enums"]["photo_status"]
           storage_path?: string
           thumbnail_path?: string | null
         }
@@ -626,7 +834,17 @@ export type Database = {
     }
     Enums: {
       app_role: "super_admin" | "admin" | "user"
+      event_status:
+        | "draft"
+        | "pending_payment"
+        | "scheduled"
+        | "active"
+        | "ended"
+        | "gallery_revealed"
+        | "expired"
+        | "cancelled"
       gallery_type: "shared" | "private"
+      photo_status: "pending" | "approved" | "rejected" | "deleted"
       reveal_timing: "immediate" | "after_event" | "24h_delay" | "custom"
       subscription_tier: "free" | "starter" | "pro" | "platinum"
     }
@@ -757,7 +975,18 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["super_admin", "admin", "user"],
+      event_status: [
+        "draft",
+        "pending_payment",
+        "scheduled",
+        "active",
+        "ended",
+        "gallery_revealed",
+        "expired",
+        "cancelled",
+      ],
       gallery_type: ["shared", "private"],
+      photo_status: ["pending", "approved", "rejected", "deleted"],
       reveal_timing: ["immediate", "after_event", "24h_delay", "custom"],
       subscription_tier: ["free", "starter", "pro", "platinum"],
     },
