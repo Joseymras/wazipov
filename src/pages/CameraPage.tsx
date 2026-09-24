@@ -10,6 +10,7 @@ import UpgradeModal from "@/components/UpgradeModal";
 import { encodeGIF } from "@/lib/gif";
 import { getSegmenter, compositeWithBackground } from "@/lib/segmenter";
 import { buildMixedStream } from "@/lib/audioMix";
+import { enqueue, dequeue, pending, uploadShot, type QueuedShot } from "@/lib/shotQueue";
 
 type Filter = "disposable" | "bw" | "sepia" | "vintage" | "glam" | "none";
 type Mode = "photo" | "video" | "boomerang" | "gif";
@@ -68,6 +69,12 @@ export default function CameraPage() {
   const [snapsLeft, setSnapsLeft] = useState(10);
   const [maxSnaps, setMaxSnaps] = useState(10);
   const [guestId, setGuestId] = useState<string | null>(null);
+  const [guestToken, setGuestToken] = useState<string | null>(null);
+  const [eventUuid, setEventUuid] = useState<string | null>(null);
+  const [eventEndsAt, setEventEndsAt] = useState<string | null>(null);
+  const [closedReason, setClosedReason] = useState<null | "ended" | "full" | "missing">(null);
+  const [queued, setQueued] = useState(0);
+  const [cameraError, setCameraError] = useState<string | null>(null);
   const [showFlash, setShowFlash] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [shutterPress, setShutterPress] = useState(false);
@@ -141,8 +148,12 @@ export default function CameraPage() {
       setTimeout(() => setWelcomeMsg(null), 3500);
       return;
     }
-    const { data: event } = await supabase.from("events").select("*").eq("id", eventId).single();
-    if (!event) return;
+    const isUuid = /^[0-9a-f-]{36}$/i.test(eventId);
+    const { data: event } = await supabase.from("events").select("*")
+      .eq(isUuid ? "id" : "public_code", isUuid ? eventId : eventId.toUpperCase()).maybeSingle();
+    if (!event) { setEventName("This camera doesn't exist."); setClosedReason("missing"); return; }
+    setEventUuid(event.id);
+    setEventEndsAt(event.ends_at);
     setEventName(event.name);
     setMaxSnaps(event.snaps_per_guest);
     setFilter((event.filter_preset as Filter) || "disposable");
@@ -154,20 +165,50 @@ export default function CameraPage() {
       setTimeout(() => setWelcomeMsg(null), 4000);
     }
 
-    let guestIdent = localStorage.getItem(`pov_guest_${eventId}`);
-    if (!guestIdent) {
-      guestIdent = `guest_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
-      localStorage.setItem(`pov_guest_${eventId}`, guestIdent);
+    let guestIdent = localStorage.getItem(`pov_guest_${event.id}`);
+    if (!guestIdent || guestIdent.length < 16) {
+      guestIdent = crypto.randomUUID();
+      localStorage.setItem(`pov_guest_${event.id}`, guestIdent);
     }
-    const { data: existing } = await supabase
-      .from("event_guests").select("*").eq("event_id", eventId).eq("guest_identifier", guestIdent).maybeSingle();
-    if (existing) { setGuestId(existing.id); setSnapsLeft(existing.snaps_remaining); }
-    else {
-      const { data: newGuest } = await supabase.from("event_guests")
-        .insert({ event_id: eventId, guest_identifier: guestIdent, snaps_remaining: event.snaps_per_guest })
-        .select().single();
-      if (newGuest) { setGuestId(newGuest.id); setSnapsLeft(newGuest.snaps_remaining); }
+    const nickname = localStorage.getItem("pov_nickname") || null;
+    const { data, error } = await supabase.rpc("join_event", {
+      _event_id: event.id, _guest_identifier: guestIdent, _nickname: nickname,
+    } as any);
+    if (error) {
+      const m = error.message || "";
+      setClosedReason(m.includes("event_full") ? "full" : "ended");
+      return;
     }
+    const row = (data as any[])?.[0];
+    if (row) {
+      setGuestId(row.guest_id); setGuestToken(row.session_token); setSnapsLeft(row.snaps_remaining);
+      // Flush any shots queued from a previous bad-network session
+      pending(row.guest_id).then((q) => { setQueued(q.length); q.forEach((s) => processShot(s)); });
+    }
+  }
+
+  async function processShot(s: QueuedShot, attempt = 0) {
+    const res = await uploadShot(s);
+    if (res.ok) {
+      await dequeue(s.id);
+      setQueued((n) => Math.max(0, n - 1));
+      setSnapsLeft(res.remaining);
+      if (res.remaining === 0) { setTimeout(() => setShowConfetti(true), 500); setTimeout(() => setShowConfetti(false), 3500); }
+      return;
+    }
+    if (res.fatal) {
+      await dequeue(s.id);
+      setQueued((n) => Math.max(0, n - 1));
+      if (res.reason === "camera_empty") setSnapsLeft(0);
+      else if (res.reason === "event_closed") setClosedReason("ended");
+      return;
+    }
+    toast({ title: "Photo saved locally.", description: "We'll retry when you're back online." });
+    const delay = Math.min(30000, 2000 * 2 ** attempt);
+    setTimeout(() => {
+      if (navigator.onLine) processShot(s, attempt + 1);
+      else window.addEventListener("online", () => processShot(s, attempt + 1), { once: true });
+    }, delay);
   }
 
   async function startCamera() {
