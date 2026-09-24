@@ -132,6 +132,9 @@ export type Database = {
           guest_identifier: string
           guest_name: string | null
           id: string
+          last_active_at: string
+          session_token: string
+          shots_used: number
           snaps_remaining: number
         }
         Insert: {
@@ -141,6 +144,9 @@ export type Database = {
           guest_identifier: string
           guest_name?: string | null
           id?: string
+          last_active_at?: string
+          session_token?: string
+          shots_used?: number
           snaps_remaining?: number
         }
         Update: {
@@ -150,6 +156,9 @@ export type Database = {
           guest_identifier?: string
           guest_name?: string | null
           id?: string
+          last_active_at?: string
+          session_token?: string
+          shots_used?: number
           snaps_remaining?: number
         }
         Relationships: [
@@ -318,48 +327,60 @@ export type Database = {
       payments: {
         Row: {
           amount: number
+          channel: string | null
           created_at: string
           currency: string
           customer_email: string | null
+          customer_phone: string | null
           event_id: string | null
+          gateway_response: string | null
           id: string
           metadata: Json
           paid_at: string | null
           plan_id: string | null
           provider: string
           provider_reference: string
+          raw_response: Json | null
           status: string
           updated_at: string
           user_id: string | null
         }
         Insert: {
           amount?: number
+          channel?: string | null
           created_at?: string
           currency?: string
           customer_email?: string | null
+          customer_phone?: string | null
           event_id?: string | null
+          gateway_response?: string | null
           id?: string
           metadata?: Json
           paid_at?: string | null
           plan_id?: string | null
           provider?: string
           provider_reference: string
+          raw_response?: Json | null
           status?: string
           updated_at?: string
           user_id?: string | null
         }
         Update: {
           amount?: number
+          channel?: string | null
           created_at?: string
           currency?: string
           customer_email?: string | null
+          customer_phone?: string | null
           event_id?: string | null
+          gateway_response?: string | null
           id?: string
           metadata?: Json
           paid_at?: string | null
           plan_id?: string | null
           provider?: string
           provider_reference?: string
+          raw_response?: Json | null
           status?: string
           updated_at?: string
           user_id?: string | null
@@ -490,48 +511,63 @@ export type Database = {
       photos: {
         Row: {
           ai_caption: string | null
+          captured_at: string
+          client_capture_id: string | null
           created_at: string
           event_id: string
           guest_id: string | null
+          height: number | null
           id: string
           is_flagged: boolean
           is_revealed: boolean
           media_type: string
+          metadata: Json
           mood_tag: string | null
           nickname: string | null
           status: Database["public"]["Enums"]["photo_status"]
           storage_path: string
           thumbnail_path: string | null
+          width: number | null
         }
         Insert: {
           ai_caption?: string | null
+          captured_at?: string
+          client_capture_id?: string | null
           created_at?: string
           event_id: string
           guest_id?: string | null
+          height?: number | null
           id?: string
           is_flagged?: boolean
           is_revealed?: boolean
           media_type?: string
+          metadata?: Json
           mood_tag?: string | null
           nickname?: string | null
           status?: Database["public"]["Enums"]["photo_status"]
           storage_path: string
           thumbnail_path?: string | null
+          width?: number | null
         }
         Update: {
           ai_caption?: string | null
+          captured_at?: string
+          client_capture_id?: string | null
           created_at?: string
           event_id?: string
           guest_id?: string | null
+          height?: number | null
           id?: string
           is_flagged?: boolean
           is_revealed?: boolean
           media_type?: string
+          metadata?: Json
           mood_tag?: string | null
           nickname?: string | null
           status?: Database["public"]["Enums"]["photo_status"]
           storage_path?: string
           thumbnail_path?: string | null
+          width?: number | null
         }
         Relationships: [
           {
@@ -824,12 +860,38 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      event_is_revealed: { Args: { _event_id: string }; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
         Returns: boolean
+      }
+      join_event: {
+        Args: {
+          _event_id: string
+          _guest_identifier: string
+          _nickname?: string
+        }
+        Returns: {
+          guest_id: string
+          session_token: string
+          shots_used: number
+          snaps_remaining: number
+        }[]
+      }
+      register_shot: {
+        Args: {
+          _client_capture_id?: string
+          _guest_id: string
+          _height?: number
+          _media_type?: string
+          _session_token: string
+          _storage_path: string
+          _width?: number
+        }
+        Returns: number
       }
     }
     Enums: {
