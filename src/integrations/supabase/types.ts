@@ -242,7 +242,7 @@ export type Database = {
           location?: string | null
           moderation_enabled?: boolean
           name: string
-          public_code: string
+          public_code?: string
           qr_code_url?: string | null
           require_nickname?: boolean
           reveal_date?: string | null
