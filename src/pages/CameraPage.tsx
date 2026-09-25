@@ -220,7 +220,7 @@ export default function CameraPage() {
         : { facingMode, width: { ideal: 1920 }, height: { ideal: 1080 } };
       const stream = await navigator.mediaDevices.getUserMedia({ video: videoConstraints, audio: needsAudio });
       streamRef.current = stream;
-      if (videoRef.current) { videoRef.current.srcObject = stream; setCameraReady(true); }
+      if (videoRef.current) { videoRef.current.srcObject = stream; setCameraReady(true); setCameraError(null); }
       // Enumerate devices once permission is granted
       try {
         const all = await navigator.mediaDevices.enumerateDevices();
@@ -448,7 +448,7 @@ export default function CameraPage() {
   const filterCss = FILTERS.find(f => f.id === filter)?.css || "none";
 
   return (
-    <div className="fixed inset-0 bg-foreground/95 flex flex-col items-center justify-between select-none overflow-hidden">
+    <div className="fixed inset-0 h-[100dvh] bg-foreground flex flex-col items-center justify-between select-none overflow-hidden touch-none" style={{ paddingTop: "env(safe-area-inset-top)" }}>
       <canvas ref={canvasRef} className="hidden" />
       <UpgradeModal open={showUpgrade} onClose={() => setShowUpgrade(false)} feature="video, GIF & boomerang modes" />
 
@@ -703,44 +703,60 @@ export default function CameraPage() {
         </AnimatePresence>
       </div>
 
-      {/* Bottom controls */}
-      <div className="w-full p-6 pb-10 space-y-4">
-        <div className="flex items-center justify-center gap-1.5 flex-wrap max-w-md mx-auto">
-          {Array.from({ length: Math.min(maxSnaps, 35) }).map((_, i) => (
-            <motion.div key={i}
-              className={`w-2.5 h-2.5 rounded-full transition-colors duration-300 ${i < snapsLeft ? "bg-primary" : "bg-background/20"}`}
-              animate={i === snapsLeft ? { scale: [1, 1.5, 1] } : {}}
-              transition={{ duration: 0.3 }}
-            />
-          ))}
-        </div>
-        <p className="text-center text-sm text-background/60 font-medium">
-          {snapsLeft > 0 ? `${snapsLeft} snap${snapsLeft === 1 ? "" : "s"} remaining` : "No snaps left!"}
-        </p>
-
-        <div className="flex items-center justify-center gap-6">
-          <Link to={eventId && eventId !== "demo" ? `/events/${eventId}/gallery` : "/"}
-            className="text-xs text-background/60 hover:text-background underline underline-offset-2">
-            View album
-          </Link>
+      {/* Bottom controls — disposable-camera style */}
+      <div className="w-full px-6 pt-4 space-y-3" style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}>
+        {queued > 0 && (
+          <p className="text-center text-xs text-background/70" role="status">
+            {navigator.onLine ? `Uploading ${queued}…` : `${queued} saved on this phone. We'll retry when you're back online.`}
+          </p>
+        )}
+        <div className="grid grid-cols-3 items-center max-w-md mx-auto">
+          <div className="leading-none text-background" aria-live="polite">
+            <span className="font-display text-4xl tabular-nums">{snapsLeft}</span>
+            <span className="block text-[10px] font-bold tracking-widest uppercase italic">Shots<br />remaining</span>
+          </div>
           <motion.button onClick={handleShutter} disabled={snapsLeft <= 0 || uploading || countdown !== null}
             animate={shutterPress ? { scale: 0.9 } : { scale: 1 }} whileTap={{ scale: 0.9 }}
             aria-label="Take photo"
-            className="relative w-20 h-20 rounded-full disabled:opacity-30 disabled:cursor-not-allowed">
-            <div className={`absolute inset-0 rounded-full border-4 ${recording ? "border-destructive" : "border-background/40"}`} />
-            <div className={`absolute inset-2 rounded-full shadow-lg ${recording ? "bg-destructive" : "bg-gradient-warm"}`} />
-            {mode === "video" && recording ? (
-              <Square className="absolute inset-0 m-auto w-6 h-6 text-background z-10" />
-            ) : (
-              <Sparkles className="absolute inset-0 m-auto w-6 h-6 text-primary-foreground z-10" />
-            )}
+            className="relative w-20 h-20 mx-auto rounded-full disabled:opacity-30 disabled:cursor-not-allowed">
+            <div className={`absolute inset-0 rounded-full border-4 ${recording ? "border-destructive" : "border-accent"}`} />
+            <div className={`absolute inset-2 rounded-full ${recording ? "bg-destructive" : "bg-background"}`} />
+            {mode === "video" && recording && <Square className="absolute inset-0 m-auto w-6 h-6 text-background z-10" />}
           </motion.button>
-          <button onClick={() => setStickers([])}
-            className="text-xs text-background/60 hover:text-background underline underline-offset-2">
-            Clear stickers
-          </button>
+          <Link to={eventUuid ? `/events/${eventUuid}/gallery` : "/"} aria-label="Open gallery"
+            className="justify-self-end w-12 h-12 rounded-lg border-2 border-background/60 bg-background/10 overflow-hidden">
+            {lastCaptureUrl && <img src={lastCaptureUrl} alt="Last shot" className="w-full h-full object-cover" />}
+          </Link>
         </div>
       </div>
+
+      {(closedReason || cameraError || (snapsLeft <= 0 && queued === 0 && guestId)) && (
+        <div className="absolute inset-0 z-[60] bg-foreground flex flex-col items-center justify-center text-center px-8 text-background">
+          <Camera className="w-10 h-10 mb-6 text-accent" aria-hidden />
+          <h2 className="font-display text-4xl uppercase leading-none mb-3">
+            {closedReason === "missing" ? "This camera doesn't exist."
+              : closedReason === "ended" ? "This POV camera has ended."
+              : closedReason === "full" ? "This camera is full."
+              : cameraError ? "POV needs your camera."
+              : "Your camera is empty."}
+          </h2>
+          <p className="text-background/70 max-w-xs mb-8">
+            {cameraError === "unsupported" ? "This browser can't open the camera. Try Chrome on Android or Safari on iPhone."
+              : cameraError ? "POV needs camera access to work as a disposable camera. Allow it in your browser settings, then try again."
+              : closedReason ? "Check with the host for the right link or code."
+              : "Thanks for capturing your perspective."}
+          </p>
+          {cameraError ? (
+            <button onClick={() => { setCameraError(null); startCamera(); }}
+              className="bg-accent text-accent-foreground rounded-full px-8 py-3 font-bold uppercase tracking-wide">Allow camera</button>
+          ) : (
+            <Link to={eventUuid ? `/events/${eventUuid}/gallery` : "/"}
+              className="bg-accent text-accent-foreground rounded-full px-8 py-3 font-bold uppercase tracking-wide">
+              {eventUuid ? "See the gallery" : "Go home"}
+            </Link>
+          )}
+        </div>
+      )}
     </div>
   );
 }
