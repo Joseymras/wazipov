@@ -227,7 +227,7 @@ export default function CameraPage() {
         setDevices(all.filter(d => d.kind === "videoinput"));
       } catch { /* ignore */ }
     } catch {
-      toast({ title: "Camera access denied", description: "Please allow camera access.", variant: "destructive" });
+      setCameraError(!navigator.mediaDevices ? "unsupported" : "denied");
     }
   }
 
@@ -288,23 +288,13 @@ export default function CameraPage() {
   }
 
   async function uploadBlob(blob: Blob, ext: string, mediaType: string) {
-    if (!eventId || eventId === "demo" || !guestId) return;
+    if (!eventUuid || !guestId || !guestToken) return;
+    if (snapsLeft - queued <= 0) { toast({ title: "Your disposable camera is empty." }); return; }
+    const shot: QueuedShot = { id: crypto.randomUUID(), eventId: eventUuid, guestId, token: guestToken, blob, ext, mediaType };
     setUploading(true);
-    try {
-      const fileName = `${eventId}/${guestId}/${Date.now()}.${ext}`;
-      const { error } = await supabase.storage.from("event-photos").upload(fileName, blob, { contentType: blob.type });
-      if (!error) {
-        await supabase.from("photos").insert({ event_id: eventId, guest_id: guestId, storage_path: fileName, media_type: mediaType });
-        const newSnaps = Math.max(0, snapsLeft - 1);
-        await supabase.from("event_guests").update({ snaps_remaining: newSnaps }).eq("id", guestId);
-        setSnapsLeft(newSnaps);
-        if (newSnaps === 0) {
-          setTimeout(() => setShowConfetti(true), 500);
-          setTimeout(() => setShowConfetti(false), 3500);
-        }
-      }
-    } catch (err) { console.error("Upload failed:", err); }
-    setUploading(false);
+    setQueued((n) => n + 1);
+    await enqueue(shot); // persisted first so the photo is never lost
+    try { await processShot(shot); } finally { setUploading(false); }
   }
 
   async function capturePhoto() {
