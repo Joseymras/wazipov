@@ -192,8 +192,8 @@ export default function CameraPage() {
     if (res.ok) {
       await dequeue(s.id);
       setQueued((n) => Math.max(0, n - 1));
-      setSnapsLeft(res.remaining);
-      if (res.remaining === 0) { setTimeout(() => setShowConfetti(true), 500); setTimeout(() => setShowConfetti(false), 3500); }
+      setSnapsLeft(res.remaining ?? 0);
+      if ((res.remaining ?? 0) === 0) { setTimeout(() => setShowConfetti(true), 500); setTimeout(() => setShowConfetti(false), 3500); }
       return;
     }
     if (res.fatal) {
