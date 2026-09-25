@@ -27,6 +27,7 @@ import AdminPage from "./pages/AdminPage";
 import ReferralPage from "./pages/ReferralPage";
 import PaymentSuccessPage from "./pages/PaymentSuccessPage";
 import NotFound from "./pages/NotFound";
+import JoinPage from "./pages/JoinPage";
 import AIChatWidget from "@/components/AIChatWidget";
 
 const queryClient = new QueryClient();
@@ -44,6 +45,8 @@ const App = () => (
             <Route path="/discover" element={<DiscoverPage />} />
             <Route path="/city/:citySlug" element={<CityPage />} />
             <Route path="/camera/:eventId" element={<CameraPage />} />
+            <Route path="/join" element={<JoinPage />} />
+            <Route path="/join/:code" element={<JoinPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
             <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />

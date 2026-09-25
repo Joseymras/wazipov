@@ -39,7 +39,7 @@ export const dequeue = (id: string) => tx("readwrite", (st) => st.delete(id)).ca
 export const pending = (guestId: string) =>
   tx<QueuedShot[]>("readonly", (st) => st.getAll()).then((all) => all.filter((s) => s.guestId === guestId)).catch(() => []);
 
-export type UploadResult = { ok: true; remaining: number } | { ok: false; fatal: boolean; reason: string };
+export type UploadResult = { ok: boolean; remaining?: number; fatal?: boolean; reason?: string };
 
 /** Upload file then atomically register the shot server-side. Safe to retry (dedup by capture id). */
 export async function uploadShot(s: QueuedShot): Promise<UploadResult> {

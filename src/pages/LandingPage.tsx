@@ -78,75 +78,26 @@ const USE_CASES = [
 ];
 
 function HeroSection() {
-  const { t } = useTranslation();
-  const [active, setActive] = useState(0);
-  const uc = USE_CASES[active];
+  const shots = [USE_CASES[3].img, USE_CASES[0].img, USE_CASES[1].img];
   return (
-    <section className="relative pt-24 pb-12 sm:pb-20 px-4 bg-gradient-hero">
-      <div className="container max-w-7xl mx-auto">
-        {/* Use-case chips */}
-        <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 sm:justify-center scrollbar-none mb-6">
-          {USE_CASES.map((u, i) => (
-            <button key={u.id} onClick={() => setActive(i)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap border transition-colors shrink-0 ${
-                i === active ? "bg-foreground text-background border-foreground" : "bg-card/60 text-muted-foreground border-border hover:text-foreground"}`}>
-              <u.icon className="w-3.5 h-3.5" /> {u.label}
-            </button>
+    <section className="relative pt-28 pb-20 px-4 overflow-hidden bg-foreground text-background">
+      <div className="container max-w-5xl mx-auto text-center">
+        <p className="text-xs font-bold uppercase tracking-[0.3em] text-accent mb-6">Guests get a disposable camera on their phone</p>
+        <h1 className="font-display uppercase text-[13vw] sm:text-7xl md:text-8xl leading-[0.9]">
+          Capture<br />everyone's<br />perspective
+        </h1>
+        <div className="relative h-64 sm:h-80 mt-12 mb-10 flex justify-center items-center">
+          {shots.map((src, i) => (
+            <motion.img key={src} src={src} alt="Guest photo from an event" loading={i === 1 ? "eager" : "lazy"}
+              initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 * i, duration: 0.6 }}
+              className={`absolute w-40 sm:w-56 aspect-[3/4] object-cover rounded-xl border-4 border-background ${
+                i === 0 ? "-translate-x-28 sm:-translate-x-44 -rotate-6 z-0" : i === 2 ? "translate-x-28 sm:translate-x-44 rotate-6 z-0" : "z-10 scale-110"}`} />
           ))}
         </div>
-        <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
-          <div className="space-y-5 sm:space-y-6 text-center lg:text-left order-2 lg:order-1">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-[11px] sm:text-xs font-semibold uppercase tracking-wider">
-              <Sparkles className="w-3 h-3" /> {t("hero_badge")}
-            </div>
-            <AnimatePresence mode="wait">
-              <motion.h1 key={uc.id}
-                initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }}
-                transition={{ duration: 0.4 }}
-                className="font-heading text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-[1.05] tracking-tight uppercase">
-                {uc.title}
-              </motion.h1>
-            </AnimatePresence>
-            <p className="text-base sm:text-lg text-muted-foreground max-w-xl mx-auto lg:mx-0 leading-relaxed">{uc.sub}</p>
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center lg:justify-start gap-3">
-              <Button variant="hero" size="lg" className="sm:size-xl" asChild>
-                <Link to="/pricing">{t("cta_create")} <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" /></Link>
-              </Button>
-              <Button variant="glass" size="lg" asChild>
-                <Link to="/camera/demo">{t("cta_try")}</Link>
-              </Button>
-            </div>
-            <div className="flex items-center justify-center lg:justify-start gap-1 pt-1">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Star key={i} className="w-4 h-4 fill-secondary text-secondary" />
-              ))}
-              <span className="text-xs sm:text-sm text-muted-foreground ml-2">{t("rated")}</span>
-            </div>
-          </div>
-          {/* Phone mockup that swaps with use case */}
-          <div className="relative flex items-center justify-center order-1 lg:order-2">
-            <AnimatePresence mode="wait">
-              <motion.div key={uc.id}
-                initial={{ opacity: 0, scale: 0.9, rotate: -4 }}
-                animate={{ opacity: 1, scale: 1, rotate: 0 }}
-                exit={{ opacity: 0, scale: 0.9, rotate: 4 }}
-                transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-                className="relative w-[200px] sm:w-[240px] md:w-[280px] aspect-[9/19] rounded-[2.2rem] sm:rounded-[2.5rem] bg-foreground p-2 sm:p-2.5 shadow-2xl">
-                <div className="absolute top-2 sm:top-2.5 left-1/2 -translate-x-1/2 w-16 sm:w-20 h-4 sm:h-5 bg-foreground rounded-b-2xl z-10" />
-                <div className="relative w-full h-full rounded-[1.7rem] sm:rounded-[2rem] overflow-hidden bg-background">
-                  <img src={uc.img} alt={uc.label} className="w-full h-full object-cover" />
-                  <div className="absolute top-3 left-3 text-[10px] font-semibold text-background bg-foreground/40 backdrop-blur rounded-full px-2 py-0.5 uppercase">
-                    {uc.label}
-                  </div>
-                  <div className="absolute bottom-0 inset-x-0 p-3 bg-gradient-to-t from-foreground/70 to-transparent flex items-center justify-center">
-                    <div className="w-12 h-12 rounded-full border-[3px] border-background/80 flex items-center justify-center">
-                      <div className="w-9 h-9 rounded-full bg-background/90" />
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            </AnimatePresence>
-          </div>
+        <p className="text-lg sm:text-xl text-background/80 mb-8">Every guest sees the event differently. Turn every guest into a disposable camera.</p>
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <Link to="/login?next=/events/new" className="bg-accent text-accent-foreground rounded-full px-8 py-4 font-bold uppercase tracking-wide">Create your POV</Link>
+          <Link to="/join" className="border-2 border-background/40 rounded-full px-8 py-4 font-bold uppercase tracking-wide hover:border-background">Join an event</Link>
         </div>
       </div>
     </section>

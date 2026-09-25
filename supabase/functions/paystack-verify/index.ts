@@ -24,6 +24,12 @@ Deno.serve(async (req) => {
     const supa = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const { user_id, plan } = data.data.metadata || {};
 
+    const { data: sub } = await supa.from("subscriptions").select("status, amount_kes").eq("reference", reference).maybeSingle();
+    if (!sub) return json({ success: false, message: "Unknown reference" });
+    if (sub.status === "active") return json({ success: true, plan });
+    if (data.data.currency !== "KES" || Number(data.data.amount) !== Math.round(Number(sub.amount_kes) * 100)) {
+      return json({ success: false, message: "Amount mismatch" });
+    }
     if (user_id && plan) {
       // Update subscription
       await supa
@@ -33,7 +39,7 @@ Deno.serve(async (req) => {
           paystack_customer_id: data.data.customer?.customer_code,
           current_period_end: plan === "platinum" ? null : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
         })
-        .eq("reference", reference);
+        .eq("reference", reference).neq("status", "active");
 
       // Update user profile tier
       await supa.from("profiles").update({ subscription_tier: plan }).eq("user_id", user_id);

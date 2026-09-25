@@ -41,6 +41,7 @@ Deno.serve(async (req) => {
         currency: "KES",
         reference,
         callback_url,
+        channels: ["mobile_money", "card"],
         metadata: { user_id: user.id, plan, guests: guestN },
       }),
     });
