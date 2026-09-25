@@ -15,6 +15,7 @@ export default {
     extend: {
       fontFamily: {
         heading: ["Space Grotesk", "sans-serif"],
+        display: ["Anton", "Impact", "sans-serif"],
         body: ["DM Sans", "sans-serif"],
       },
       colors: {
