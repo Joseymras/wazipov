@@ -47,7 +47,7 @@ export async function uploadShot(s: QueuedShot): Promise<UploadResult> {
   const up = await supabase.storage.from("event-photos").upload(path, s.blob, { contentType: s.blob.type, upsert: false });
   if (up.error && !/exists|Duplicate/i.test(up.error.message)) {
     const fatal = /row-level security|Unauthorized|403/i.test(up.error.message);
-    return { ok: false, fatal, reason: fatal ? "camera_empty" : "network" };
+    return { ok: false, fatal, reason: fatal ? "storage" : "network" };
   }
   const { data, error } = await supabase.rpc("register_shot", {
     _guest_id: s.guestId, _session_token: s.token, _storage_path: path,
