@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -31,6 +31,12 @@ import JoinPage from "./pages/JoinPage";
 import AIChatWidget from "@/components/AIChatWidget";
 
 const queryClient = new QueryClient();
+
+function ChatGate() {
+  const { pathname } = useLocation();
+  if (pathname.startsWith("/camera") || pathname.startsWith("/join")) return null;
+  return <AIChatWidget />;
+}
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -65,7 +71,7 @@ const App = () => (
             <Route path="/payment-success" element={<PaymentSuccessPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
-          <AIChatWidget />
+          <ChatGate />
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
