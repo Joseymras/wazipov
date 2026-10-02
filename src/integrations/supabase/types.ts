@@ -861,6 +861,10 @@ export type Database = {
     }
     Functions: {
       event_is_revealed: { Args: { _event_id: string }; Returns: boolean }
+      guest_can_upload: {
+        Args: { _event: string; _guest: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

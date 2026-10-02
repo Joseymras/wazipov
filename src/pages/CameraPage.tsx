@@ -200,6 +200,7 @@ export default function CameraPage() {
       await dequeue(s.id);
       setQueued((n) => Math.max(0, n - 1));
       if (res.reason === "camera_empty") setSnapsLeft(0);
+      else if (res.reason === "storage") toast({ title: "We couldn't upload that shot.", description: "Please try again.", variant: "destructive" });
       else if (res.reason === "event_closed") setClosedReason("ended");
       return;
     }
