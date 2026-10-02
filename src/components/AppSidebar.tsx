@@ -19,7 +19,7 @@ const mainItems = [
 ];
 const accountItems = [
   { title: "Settings", url: "/dashboard/settings", icon: Settings },
-  { title: "Billing", url: "/pricing", icon: CreditCard },
+  { title: "Billing", url: "/dashboard/billing", icon: CreditCard },
   { title: "Referrals", url: "/referral", icon: Users },
 ];
 

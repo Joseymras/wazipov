@@ -15,6 +15,7 @@ import DashboardMusicPage from "./pages/DashboardMusicPage";
 import DashboardMarketingPage from "./pages/DashboardMarketingPage";
 import DashboardPhotobooksPage from "./pages/DashboardPhotobooksPage";
 import DashboardSettingsPage from "./pages/DashboardSettingsPage";
+import DashboardBillingPage from "./pages/DashboardBillingPage";
 import PhotobookEditorPage from "./pages/PhotobookEditorPage";
 import OnboardingPage from "./pages/OnboardingPage";
 import DiscoverPage from "./pages/DiscoverPage";
@@ -61,6 +62,7 @@ const App = () => (
             <Route path="/dashboard/marketing" element={<ProtectedRoute><DashboardMarketingPage /></ProtectedRoute>} />
             <Route path="/dashboard/photobooks" element={<ProtectedRoute><DashboardPhotobooksPage /></ProtectedRoute>} />
             <Route path="/dashboard/settings" element={<ProtectedRoute><DashboardSettingsPage /></ProtectedRoute>} />
+            <Route path="/dashboard/billing" element={<ProtectedRoute><DashboardBillingPage /></ProtectedRoute>} />
             <Route path="/photobooks/:bookId" element={<ProtectedRoute><PhotobookEditorPage /></ProtectedRoute>} />
             <Route path="/events/new" element={<ProtectedRoute><EventFormPage /></ProtectedRoute>} />
             <Route path="/events/:eventId/edit" element={<ProtectedRoute><EventFormPage /></ProtectedRoute>} />
