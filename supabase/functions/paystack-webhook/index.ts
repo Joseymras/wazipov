@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2.95.0";
+import { activateFromCharge } from "../_shared/activate.ts";
 
 const SECRET = Deno.env.get("PAYSTACK_SECRET_KEY")!;
 const supa = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
@@ -36,28 +37,6 @@ Deno.serve(async (req) => {
   const tx = v?.data;
   if (!v?.status || tx?.status !== "success") return new Response("ok");
 
-  const { data: sub } = await supa.from("subscriptions").select("*").eq("reference", reference).maybeSingle();
-  if (!sub) return new Response("ok");
-  if (sub.status === "active") return new Response("ok"); // idempotent
-  const expected = Math.round(Number(sub.amount_kes) * 100);
-  if (tx.currency !== "KES" || Number(tx.amount) !== expected) {
-    await supa.from("subscriptions").update({ status: "amount_mismatch" }).eq("id", sub.id);
-    return new Response("ok");
-  }
-
-  // Conditional update guards against concurrent duplicate webhooks
-  const { data: claimed } = await supa.from("subscriptions")
-    .update({ status: "active", paystack_customer_id: tx.customer?.customer_code,
-      current_period_end: sub.tier === "platinum" ? null : new Date(Date.now() + 30 * 864e5).toISOString() })
-    .eq("id", sub.id).neq("status", "active").select("id");
-  if (!claimed?.length) return new Response("ok");
-
-  await supa.from("profiles").update({ subscription_tier: sub.tier }).eq("user_id", sub.user_id);
-  await supa.from("payments").upsert({
-    user_id: sub.user_id, plan_id: sub.tier, provider: "paystack", provider_reference: reference,
-    amount: Number(tx.amount) / 100, currency: tx.currency, status: "success", channel: tx.channel,
-    customer_email: tx.customer?.email, customer_phone: tx.authorization?.mobile_money_number ?? null,
-    gateway_response: tx.gateway_response, paid_at: tx.paid_at, raw_response: tx,
-  }, { onConflict: "provider,provider_reference" });
+  await activateFromCharge(supa, reference, tx);
   return new Response("ok");
 });

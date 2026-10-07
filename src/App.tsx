@@ -29,6 +29,7 @@ import ReferralPage from "./pages/ReferralPage";
 import PaymentSuccessPage from "./pages/PaymentSuccessPage";
 import NotFound from "./pages/NotFound";
 import JoinPage from "./pages/JoinPage";
+import ActivateEventPage from "./pages/ActivateEventPage";
 import AIChatWidget from "@/components/AIChatWidget";
 
 const queryClient = new QueryClient();
@@ -67,6 +68,7 @@ const App = () => (
             <Route path="/events/new" element={<ProtectedRoute><EventFormPage /></ProtectedRoute>} />
             <Route path="/events/:eventId/edit" element={<ProtectedRoute><EventFormPage /></ProtectedRoute>} />
             <Route path="/events/:eventId/qr" element={<ProtectedRoute><QRCodePage /></ProtectedRoute>} />
+            <Route path="/events/:eventId/activate" element={<ProtectedRoute><ActivateEventPage /></ProtectedRoute>} />
             <Route path="/events/:eventId/gallery" element={<GalleryPage />} />
             <Route path="/admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
             <Route path="/referral" element={<ProtectedRoute><ReferralPage /></ProtectedRoute>} />

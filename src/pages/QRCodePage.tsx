@@ -166,6 +166,7 @@ export default function QRCodePage() {
                 </div>
               </div>
 
+              <Button variant="outline" size="lg" className="w-full" onClick={() => navigate(`/events/${eventId}/activate`)}>Unlock more guests & shots</Button>
               {/* Share Button */}
               <Button variant="hero" size="lg" className="w-full" onClick={shareLink}>
                 <Share2 className="w-5 h-5" /> Share with Guests
