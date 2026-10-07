@@ -1,60 +1,31 @@
 import { corsHeaders } from "npm:@supabase/supabase-js@2.95.0/cors";
 import { createClient } from "npm:@supabase/supabase-js@2.95.0";
+import { activateFromCharge } from "../_shared/activate.ts";
 
 const PAYSTACK_SECRET = Deno.env.get("PAYSTACK_SECRET_KEY")!;
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const supa = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-
   try {
     const { reference } = await req.json();
-    if (!reference) return json({ error: "Missing reference" }, 400);
-
-    const res = await fetch(`https://api.paystack.co/transaction/verify/${reference}`, {
+    if (typeof reference !== "string" || !/^[\w-]{6,100}$/.test(reference)) return json({ error: "Missing reference" }, 400);
+    const res = await fetch(`https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`, {
       headers: { Authorization: `Bearer ${PAYSTACK_SECRET}` },
     });
     const data = await res.json();
-
-    if (!data.status || data.data.status !== "success") {
-      return json({ success: false, message: data.message || "Payment not successful" });
+    const tx = data?.data;
+    if (!data.status || tx?.status !== "success") {
+      return json({ success: false, pending: ["ongoing", "pending", "processing", "queued"].includes(tx?.status), message: tx?.gateway_response || data.message || "Payment not completed" });
     }
-
-    const supa = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-    const { user_id, plan } = data.data.metadata || {};
-
-    const { data: sub } = await supa.from("subscriptions").select("status, amount_kes").eq("reference", reference).maybeSingle();
-    if (!sub) return json({ success: false, message: "Unknown reference" });
-    if (sub.status === "active") return json({ success: true, plan });
-    if (data.data.currency !== "KES" || Number(data.data.amount) !== Math.round(Number(sub.amount_kes) * 100)) {
-      return json({ success: false, message: "Amount mismatch" });
-    }
-    if (user_id && plan) {
-      // Update subscription
-      await supa
-        .from("subscriptions")
-        .update({
-          status: "active",
-          paystack_customer_id: data.data.customer?.customer_code,
-          current_period_end: plan === "platinum" ? null : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-        })
-        .eq("reference", reference).neq("status", "active");
-
-      // Update user profile tier
-      await supa.from("profiles").update({ subscription_tier: plan }).eq("user_id", user_id);
-    }
-
-    return json({ success: true, plan });
+    const r = await activateFromCharge(supa, reference, tx);
+    return json({ success: r.ok, plan: r.plan, event_id: r.event_id, message: r.message });
   } catch (err) {
     console.error(err);
-    return json({ error: String(err) }, 500);
+    return json({ error: "Verification failed" }, 500);
   }
 });
 
 function json(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
+  return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 }

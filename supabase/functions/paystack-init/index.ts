@@ -17,7 +17,12 @@ Deno.serve(async (req) => {
     const { data: { user } } = await supa.auth.getUser(token);
     if (!user) return json({ error: "Unauthorized" }, 401);
 
-    const { plan, callback_url, guests = 50 } = await req.json();
+    const { plan, callback_url, guests = 50, event_id, shots = 25 } = await req.json();
+    if (event_id) {
+      const { data: ev } = await supa.from("events").select("id").eq("id", event_id).eq("host_id", user.id).maybeSingle();
+      if (!ev) return json({ error: "Event not found" }, 404);
+    }
+    const shotN = Math.max(1, Math.min(100, Number(shots) || 25));
     if (!["starter", "pro", "platinum"].includes(plan)) return json({ error: "Invalid plan" }, 400);
 
     // Read authoritative price from DB (never trust client amount)
@@ -42,7 +47,7 @@ Deno.serve(async (req) => {
         reference,
         callback_url,
         channels: ["mobile_money", "card"],
-        metadata: { user_id: user.id, plan, guests: guestN },
+        metadata: { user_id: user.id, plan, guests: guestN, shots: shotN, event_id: event_id || null },
       }),
     });
 
@@ -53,6 +58,8 @@ Deno.serve(async (req) => {
       user_id: user.id, tier: plan, provider: "paystack",
       reference, amount_kes: totalKes, status: "pending",
     });
+    await supa.from("payments").insert({ user_id: user.id, event_id: event_id || null, plan_id: plan, provider: "paystack", provider_reference: reference, amount: totalKes, currency: "KES", status: "pending", customer_email: user.email, metadata: { guests: guestN, shots: shotN } });
+    if (event_id) await supa.from("events").update({ status: "pending_payment" }).eq("id", event_id).eq("status", "draft");
 
     return json({ authorization_url: data.data.authorization_url, reference, amount_kes: totalKes });
   } catch (err) {
