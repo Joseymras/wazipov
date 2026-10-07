@@ -47,9 +47,7 @@ export default function ActivateEventPage() {
           <p className="text-xs uppercase tracking-widest text-muted-foreground">Activate your camera</p>
           <h1 className="font-display text-4xl md:text-5xl uppercase mt-2">{event?.name || "Your event"}</h1>
           <p className="text-muted-foreground mt-2">
-            {event?.status === "active" && event.guest_limit > 10
-              ? `Active · up to ${event.guest_limit} guests · ${event.snaps_per_guest} shots each.`
-              : "Free cameras allow 10 guests. Pick your guest count and shots to unlock the full event."}
+            {event ? `Right now: up to ${event.guest_limit} guests · ${event.snaps_per_guest} shots each. ` : ""}Pick your guest count and shots, then pay to unlock them.
           </p>
         </div>
 
