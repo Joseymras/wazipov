@@ -10,6 +10,7 @@ export default function PaymentSuccessPage() {
   const navigate = useNavigate();
   const [status, setStatus] = useState<"verifying" | "success" | "failed">("verifying");
   const [plan, setPlan] = useState<string>("");
+  const [eventId, setEventId] = useState<string | null>(null);
 
   useEffect(() => {
     const reference = params.get("reference") || params.get("trxref");
@@ -22,8 +23,13 @@ export default function PaymentSuccessPage() {
           const { data } = await supabase.functions.invoke("stripe-verify", { body: { session_id: sessionId } });
           if (data?.success) { setStatus("success"); setPlan(data.plan || ""); } else setStatus("failed");
         } else if (reference) {
-          const { data } = await supabase.functions.invoke("paystack-verify", { body: { reference } });
-          if (data?.success) { setStatus("success"); setPlan(data.plan || ""); } else setStatus("failed");
+          for (let i = 0; i < 6; i++) {
+            const { data } = await supabase.functions.invoke("paystack-verify", { body: { reference } });
+            if (data?.success) { setStatus("success"); setPlan(data.plan || ""); setEventId(data.event_id || null); return; }
+            if (!data?.pending) break;
+            await new Promise((r) => setTimeout(r, 5000));
+          }
+          setStatus("failed");
         } else {
           setStatus("failed");
         }
@@ -51,16 +57,16 @@ export default function PaymentSuccessPage() {
             </div>
             <h1 className="font-heading text-3xl font-bold text-foreground">Welcome to {plan || "POV Moments"}! 🎉</h1>
             <p className="text-muted-foreground">Your subscription is active. Time to create your first event.</p>
-            <Button variant="hero" size="lg" className="w-full" onClick={() => navigate("/dashboard")}>
-              Go to Dashboard <ArrowRight className="w-4 h-4" />
+            <Button variant="hero" size="lg" className="w-full" onClick={() => navigate(eventId ? `/events/${eventId}/qr` : "/dashboard")}>
+              {eventId ? "Get your QR code" : "Go to Dashboard"} <ArrowRight className="w-4 h-4" />
             </Button>
           </>
         )}
         {status === "failed" && (
           <>
-            <h1 className="font-heading text-2xl font-bold text-foreground">Payment couldn't be verified</h1>
+            <h1 className="font-heading text-2xl font-bold text-foreground">Your payment wasn't completed.</h1>
             <p className="text-muted-foreground text-sm">If you were charged, please contact support with your reference.</p>
-            <Button variant="hero" onClick={() => navigate("/pricing")}>Try again</Button>
+            <Button variant="hero" onClick={() => navigate(-1)}>Try again</Button>
           </>
         )}
       </motion.div>

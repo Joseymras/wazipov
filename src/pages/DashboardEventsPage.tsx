@@ -65,6 +65,7 @@ export default function DashboardEventsPage() {
                     {e.city && ` · ${e.city}`}
                   </p>
                   <div className="flex items-center gap-1 mt-3 pt-3 border-t border-border">
+                    <Button variant="outline" size="sm" className="rounded-full" asChild><Link to={`/events/${e.id}/activate`}>Activate</Link></Button>
                     <Button variant="ghost" size="icon" asChild><Link to={`/events/${e.id}/qr`}><QrCode className="w-4 h-4" /></Link></Button>
                     <Button variant="ghost" size="icon" asChild><Link to={`/events/${e.id}/gallery`}><Eye className="w-4 h-4" /></Link></Button>
                     <Button variant="ghost" size="icon" asChild><Link to={`/events/${e.id}/edit`}><Edit className="w-4 h-4" /></Link></Button>
