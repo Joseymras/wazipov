@@ -29,6 +29,7 @@ import ReferralPage from "./pages/ReferralPage";
 import PaymentSuccessPage from "./pages/PaymentSuccessPage";
 import NotFound from "./pages/NotFound";
 import JoinPage from "./pages/JoinPage";
+import EventLinkPage from "./pages/EventLinkPage";
 import ActivateEventPage from "./pages/ActivateEventPage";
 import AIChatWidget from "@/components/AIChatWidget";
 
@@ -36,7 +37,7 @@ const queryClient = new QueryClient();
 
 function ChatGate() {
   const { pathname } = useLocation();
-  if (pathname.startsWith("/camera") || pathname.startsWith("/join")) return null;
+  if (pathname.startsWith("/camera") || pathname.startsWith("/join") || pathname.startsWith("/e/")) return null;
   return <AIChatWidget />;
 }
 
@@ -54,6 +55,7 @@ const App = () => (
             <Route path="/city/:citySlug" element={<CityPage />} />
             <Route path="/camera/:eventId" element={<CameraPage />} />
             <Route path="/join" element={<JoinPage />} />
+            <Route path="/e/:code" element={<EventLinkPage />} />
             <Route path="/join/:code" element={<JoinPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
