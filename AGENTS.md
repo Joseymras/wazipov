@@ -1,0 +1,1 @@
+- Public share/QR URLs come from src/lib/site.ts (VITE_SITE_URL override) and use /e/<public_code>; never window.location or raw event UUIDs — QRs must work after self-hosting.
