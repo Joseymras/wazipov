@@ -1,0 +1,1 @@
+- [ ] Admin panel: manage/edit everything; non-admins blocked
