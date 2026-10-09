@@ -6,6 +6,8 @@ import { Slider } from "@/components/ui/slider";
 import { supabase } from "@/integrations/supabase/client";
 import { useTierPrices } from "@/hooks/useTierPrices";
 import { toast } from "@/hooks/use-toast";
+import { useRole } from "@/hooks/useRole";
+import { useNavigate } from "react-router-dom";
 
 const SHOT_OPTIONS = [10, 15, 20, 25, 30];
 
@@ -17,6 +19,17 @@ export default function ActivateEventPage() {
   const [shots, setShots] = useState(25);
   const [plan, setPlan] = useState<string>("starter");
   const [busy, setBusy] = useState(false);
+  const { isAdmin } = useRole();
+  const navigate = useNavigate();
+
+  async function adminActivate() {
+    setBusy(true);
+    const { error } = await supabase.rpc("admin_activate_event" as any, { _event_id: eventId, _guests: guests, _shots: shots });
+    setBusy(false);
+    if (error) { toast({ title: "Couldn't activate", description: "Please try again.", variant: "destructive" }); return; }
+    toast({ title: "Event is live", description: "Activated free with admin access." });
+    navigate(`/events/${eventId}/qr`);
+  }
 
   useEffect(() => {
     supabase.from("events").select("name,status,guest_limit,snaps_per_guest").eq("id", eventId!).maybeSingle()
@@ -51,6 +64,12 @@ export default function ActivateEventPage() {
           </p>
         </div>
 
+        {isAdmin && (
+          <section className="rounded-2xl border-2 border-accent bg-card p-5 flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
+            <div><p className="font-medium">Admin access</p><p className="text-sm text-muted-foreground">Activate this event free with the guests and shots below.</p></div>
+            <Button className="rounded-full" disabled={busy} onClick={adminActivate}>{busy ? <Loader2 className="w-4 h-4 animate-spin" /> : "Activate free"}</Button>
+          </section>
+        )}
         <section className="rounded-2xl border border-border bg-card p-5 space-y-4">
           <div className="flex justify-between items-baseline"><span className="text-sm font-medium">Guests</span><span className="font-display text-3xl">{guests}</span></div>
           <Slider value={[guests]} min={10} max={1000} step={10} onValueChange={(v) => setGuests(v[0])} />

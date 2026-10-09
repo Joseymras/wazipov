@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useRole } from "@/hooks/useRole";
 
 export type TrialStatus = {
   isOnTrial: boolean;
@@ -11,12 +12,13 @@ export type TrialStatus = {
 
 export function useTrial(): TrialStatus {
   const { profile } = useAuth() as any;
+  const { isAdmin } = useRole();
 
   return useMemo(() => {
     if (!profile) {
       return { isOnTrial: false, isExpired: false, isPaid: false, hoursLeft: 0, trialEndsAt: null };
     }
-    const isPaid = profile.subscription_tier && profile.subscription_tier !== "free";
+    const isPaid = isAdmin || profile.subscription_tier && profile.subscription_tier !== "free";
     const trialEndsAt = profile.trial_ends_at ? new Date(profile.trial_ends_at) : null;
     if (isPaid) {
       return { isOnTrial: false, isExpired: false, isPaid: true, hoursLeft: 0, trialEndsAt };
@@ -33,5 +35,5 @@ export function useTrial(): TrialStatus {
       hoursLeft,
       trialEndsAt,
     };
-  }, [profile]);
+  }, [profile, isAdmin]);
 }
