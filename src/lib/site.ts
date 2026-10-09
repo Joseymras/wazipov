@@ -1,5 +1,5 @@
 // Production domain for every QR code, share link and canonical URL. Override with VITE_SITE_URL.
-export const SITE_URL = (import.meta.env.VITE_SITE_URL as string | undefined)?.replace(/\/$/, "") || "https://wazevents.co.ke";
+export const SITE_URL = (import.meta.env.VITE_SITE_URL as string | undefined)?.replace(/\/$/, "") || "https://wazievents.co.ke";
 
 export const eventUrl = (code: string) => `${SITE_URL}/e/${code}`;
 export const galleryUrl = (eventId: string) => `${SITE_URL}/events/${eventId}/gallery`;
