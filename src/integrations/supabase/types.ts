@@ -860,6 +860,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_activate_event: {
+        Args: { _event_id: string; _guests: number; _shots: number }
+        Returns: undefined
+      }
       event_is_revealed: { Args: { _event_id: string }; Returns: boolean }
       guest_can_upload: {
         Args: { _event: string; _guest: string }

@@ -1,277 +1,207 @@
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { useState } from "react";
-import { Camera, Sparkles, Clock, QrCode, ArrowRight, Star, BookOpen, Mic, Wand2, Lock, Globe, Heart, Cake, Briefcase, PartyPopper, GraduationCap, Music, Plane } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { useTranslation } from "react-i18next";
+import { Camera, QrCode, Lock, Download, Heart, Cake, Briefcase, PartyPopper, GraduationCap, Music, Church, School, Tent, Baby, Plane, Trophy, ArrowRight, Check } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
-import LanguageSwitcher from "@/components/LanguageSwitcher";
-import AdSlot from "@/components/AdSlot";
-import hero1 from "@/assets/hero-1.jpg";
-import hero2 from "@/assets/hero-2.jpg";
-import hero3 from "@/assets/hero-3.jpg";
+import { useTierPrices } from "@/hooks/useTierPrices";
 
-const fadeUp = {
-  hidden: { opacity: 0, y: 24 },
-  visible: (i: number) => ({
-    opacity: 1, y: 0,
-    transition: { delay: i * 0.08, duration: 0.7, ease: [0.22, 1, 0.36, 1] as const },
-  }),
-};
+const img = (id: number, w = 900) => `https://images.pexels.com/photos/${id}/pexels-photo-${id}.jpeg?auto=compress&w=${w}`;
 
-const ugc = [
-  "https://images.pexels.com/photos/1024960/pexels-photo-1024960.jpeg?auto=compress&w=400",
-  "https://images.pexels.com/photos/3171837/pexels-photo-3171837.jpeg?auto=compress&w=400",
-  "https://images.pexels.com/photos/2306281/pexels-photo-2306281.jpeg?auto=compress&w=400",
-  "https://images.pexels.com/photos/1729797/pexels-photo-1729797.jpeg?auto=compress&w=400",
-  "https://images.pexels.com/photos/3585047/pexels-photo-3585047.jpeg?auto=compress&w=400",
-  "https://images.pexels.com/photos/1684187/pexels-photo-1684187.jpeg?auto=compress&w=400",
-  "https://images.pexels.com/photos/1707828/pexels-photo-1707828.jpeg?auto=compress&w=400",
-  "https://images.pexels.com/photos/2306277/pexels-photo-2306277.jpeg?auto=compress&w=400",
-  "https://images.pexels.com/photos/1654498/pexels-photo-1654498.jpeg?auto=compress&w=400",
-  "https://images.pexels.com/photos/1043902/pexels-photo-1043902.jpeg?auto=compress&w=400",
-  "https://images.pexels.com/photos/2253879/pexels-photo-2253879.jpeg?auto=compress&w=400",
-  "https://images.pexels.com/photos/2774556/pexels-photo-2774556.jpeg?auto=compress&w=400",
+const NICHES = [
+  { id: "weddings", label: "Weddings", icon: Heart, photo: 1043902, title: "Every angle of I do.", sub: "Aunties, bridesmaids and the back row — all their moments in one album." },
+  { id: "birthdays", label: "Birthdays", icon: Cake, photo: 1729797, title: "Make their day last.", sub: "A surprise reveal of the night, the morning after." },
+  { id: "corporate", label: "Corporate", icon: Briefcase, photo: 2774556, title: "Content from every seat.", sub: "Launches, conferences and team retreats, captured by your people." },
+  { id: "parties", label: "Parties", icon: PartyPopper, photo: 1684187, title: "Bottle the vibe.", sub: "The real moments nobody posed for." },
+  { id: "concerts", label: "Concerts & festivals", icon: Music, photo: 2306281, title: "A thousand front rows.", sub: "Crowdsource the show from every corner of the venue." },
+  { id: "graduations", label: "Graduations", icon: GraduationCap, photo: 3585047, title: "Cap, gown, captured.", sub: "Family, friends and that cap toss — from every phone." },
+  { id: "church", label: "Church & faith", icon: Church, photo: 2253879, title: "Fellowship, remembered.", sub: "Services, crusades, baptisms and choir days." },
+  { id: "schools", label: "Schools", icon: School, photo: 1205651, title: "Sports day to prize day.", sub: "Parents and teachers share one safe, private album." },
+  { id: "baby", label: "Baby showers", icon: Baby, photo: 3662667, title: "Little one, big love.", sub: "Gentle, private, and shared only with family." },
+  { id: "sports", label: "Sports & runs", icon: Trophy, photo: 2526878, title: "Every finish line.", sub: "Marathons, tournaments and fun days from the sidelines." },
+  { id: "camps", label: "Retreats & camps", icon: Tent, photo: 1687845, title: "Stories by the fire.", sub: "Youth camps, retreats and team getaways." },
+  { id: "travel", label: "Group trips", icon: Plane, photo: 1007657, title: "One trip. Every POV.", sub: "Safaris, road trips and holidays in a single shared roll." },
 ];
 
-function PhoneMock({ src, rotate = 0, delay = 0 }: { src: string; rotate?: number; delay?: number }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 40, rotate: rotate - 6 }}
-      whileInView={{ opacity: 1, y: 0, rotate }}
-      viewport={{ once: true, margin: "-50px" }}
-      transition={{ delay, duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
-      className="relative w-[180px] sm:w-[220px] md:w-[260px] aspect-[9/19] rounded-[2.5rem] bg-foreground p-2.5 shadow-2xl shrink-0"
-    >
-      <div className="absolute top-2.5 left-1/2 -translate-x-1/2 w-20 h-5 bg-foreground rounded-b-2xl z-10" />
-      <div className="relative w-full h-full rounded-[2rem] overflow-hidden bg-background">
-        <img src={src} alt="POV moment" loading="lazy" className="w-full h-full object-cover" />
-        {/* Shutter UI overlay */}
-        <div className="absolute bottom-0 inset-x-0 p-3 bg-gradient-to-t from-foreground/70 to-transparent flex items-center justify-center">
-          <div className="w-12 h-12 rounded-full border-[3px] border-background/80 flex items-center justify-center">
-            <div className="w-9 h-9 rounded-full bg-background/90" />
-          </div>
-        </div>
-        <div className="absolute top-3 left-3 text-[10px] font-semibold text-background/90 bg-foreground/40 backdrop-blur rounded-full px-2 py-0.5">
-          25 SHOTS
-        </div>
-      </div>
-    </motion.div>
-  );
-}
-
-const USE_CASES = [
-  { id: "wedding", label: "Weddings", icon: Heart, img: "https://images.pexels.com/photos/1043902/pexels-photo-1043902.jpeg?auto=compress&w=900",
-    title: "Capture the love.", sub: "Every guest's POV of the big day, hidden until the reveal." },
-  { id: "birthday", label: "Birthdays", icon: Cake, img: "https://images.pexels.com/photos/1729797/pexels-photo-1729797.jpeg?auto=compress&w=900",
-    title: "Make their day.", sub: "Disposable-style fun. Surprise reveal the morning after." },
-  { id: "corporate", label: "Corporate", icon: Briefcase, img: "https://images.pexels.com/photos/2774556/pexels-photo-2774556.jpeg?auto=compress&w=900",
-    title: "Brand every angle.", sub: "Conferences, launches & offsites — all in your colours." },
-  { id: "party", label: "Parties", icon: PartyPopper, img: "https://images.pexels.com/photos/1684187/pexels-photo-1684187.jpeg?auto=compress&w=900",
-    title: "Bottle the vibe.", sub: "Boomerangs, GIFs, green-screen — pure chaos, beautifully captured." },
-  { id: "concert", label: "Concerts", icon: Music, img: "https://images.pexels.com/photos/2306281/pexels-photo-2306281.jpeg?auto=compress&w=900",
-    title: "Crowdsource the show.", sub: "Hundreds of stage POVs in one shared album." },
-  { id: "graduation", label: "Graduations", icon: GraduationCap, img: "https://images.pexels.com/photos/3585047/pexels-photo-3585047.jpeg?auto=compress&w=900",
-    title: "Cap, gown, captured.", sub: "Family photos and cap tosses without the awkward group shot." },
-  { id: "travel", label: "Trips", icon: Plane, img: "https://images.pexels.com/photos/2253879/pexels-photo-2253879.jpeg?auto=compress&w=900",
-    title: "One album. Every angle.", sub: "Group trips become a shared travel diary." },
+const STEPS = [
+  { icon: Camera, t: "Create your Wazi", d: "Name your event, pick shots per guest and when photos reveal." },
+  { icon: QrCode, t: "Share one QR", d: "Print it on tables or drop the link on WhatsApp. No app needed." },
+  { icon: Lock, t: "Guests shoot", d: "Their phone becomes a disposable camera with limited shots." },
+  { icon: Download, t: "The roll develops", d: "Photos reveal when you choose. Download everything in one go." },
 ];
 
-function HeroSection() {
-  const shots = [USE_CASES[3].img, USE_CASES[0].img, USE_CASES[1].img];
-  return (
-    <section className="relative pt-28 pb-20 px-4 overflow-hidden bg-foreground text-background">
-      <div className="container max-w-5xl mx-auto text-center">
-        <p className="text-xs font-bold uppercase tracking-[0.3em] text-accent mb-6">Guests get a disposable camera on their phone</p>
-        <h1 className="font-display uppercase text-[13vw] sm:text-7xl md:text-8xl leading-[0.9]">
-          Capture<br />everyone's<br />perspective
-        </h1>
-        <div className="relative h-64 sm:h-80 mt-12 mb-10 flex justify-center items-center">
-          {shots.map((src, i) => (
-            <motion.img key={src} src={src} alt="Guest photo from an event" loading={i === 1 ? "eager" : "lazy"}
-              initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 * i, duration: 0.6 }}
-              className={`absolute w-40 sm:w-56 aspect-[3/4] object-cover rounded-xl border-4 border-background ${
-                i === 0 ? "-translate-x-28 sm:-translate-x-44 -rotate-6 z-0" : i === 2 ? "translate-x-28 sm:translate-x-44 rotate-6 z-0" : "z-10 scale-110"}`} />
-          ))}
-        </div>
-        <p className="text-lg sm:text-xl text-background/80 mb-8">Every guest sees the event differently. Turn every guest into a disposable camera.</p>
-        <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <Link to="/login?next=/events/new" className="bg-accent text-accent-foreground rounded-full px-8 py-4 font-bold uppercase tracking-wide">Create your POV</Link>
-          <Link to="/join" className="border-2 border-background/40 rounded-full px-8 py-4 font-bold uppercase tracking-wide hover:border-background">Join an event</Link>
-        </div>
-      </div>
-    </section>
-  );
-}
+const FAQ = [
+  ["Do guests need an app or an account?", "No. They scan the QR or tap the link, add a nickname and start shooting in their browser."],
+  ["Does it work on cheap Android phones?", "Yes. Wazi is built for everyday phones and Kenyan mobile data, and saves photos on the phone if the network drops."],
+  ["How do I pay?", "M-PESA or card through Paystack. Your event goes live the moment payment is confirmed."],
+  ["Who can see the photos?", "Only you, until you choose to reveal them to guests. Galleries are private by default."],
+  ["Can I approve photos first?", "Yes. Turn on moderation and nothing appears until you approve it."],
+];
 
 export default function LandingPage() {
-  const { t } = useTranslation();
-  // Capture ?ref= referral code into localStorage for signup attribution
+  const [active, setActive] = useState(0);
+  const [open, setOpen] = useState<number | null>(0);
+  const { tiers } = useTierPrices();
   if (typeof window !== "undefined") {
     const r = new URLSearchParams(window.location.search).get("ref");
     if (r) localStorage.setItem("pov_ref", r);
   }
-
+  const n = NICHES[active];
 
   return (
-    <div className="min-h-screen bg-background text-foreground relative film-grain overflow-hidden">
-      {/* Nav */}
-      <nav className="fixed top-0 w-full z-50 glass-card border-b border-border/30">
-        <div className="container flex items-center justify-between h-16 px-4">
-          <Link to="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-warm flex items-center justify-center">
-              <Camera className="w-4 h-4 text-primary-foreground" />
-            </div>
-            <span className="font-heading font-bold text-lg">POV Moments</span>
-          </Link>
-          <div className="hidden md:flex items-center gap-8 text-sm text-muted-foreground">
-            <Link to="/pricing" className="hover:text-foreground transition-colors">{t("nav_pricing")}</Link>
-            <a href="#features" className="hover:text-foreground transition-colors">{t("nav_features")}</a>
-            <a href="#how" className="hover:text-foreground transition-colors">{t("nav_how")}</a>
-            <a href="#wall" className="hover:text-foreground transition-colors">Gallery</a>
+    <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
+      <nav className="fixed top-0 inset-x-0 z-50 bg-background/90 backdrop-blur border-b border-border">
+        <div className="max-w-7xl mx-auto flex items-center justify-between h-16 px-4">
+          <Link to="/" className="font-display text-2xl uppercase tracking-wide">Wazi<span className="text-accent">.</span></Link>
+          <div className="hidden md:flex gap-8 text-sm text-muted-foreground">
+            <a href="#how" className="hover:text-foreground">How it works</a>
+            <a href="#niches" className="hover:text-foreground">Use cases</a>
+            <a href="#pricing" className="hover:text-foreground">Pricing</a>
+            <a href="#faq" className="hover:text-foreground">FAQ</a>
           </div>
-          <div className="flex items-center gap-1.5">
-            <LanguageSwitcher />
+          <div className="flex items-center gap-2">
             <ThemeToggle />
-            <Button variant="ghost" size="sm" asChild className="hidden sm:inline-flex">
-              <Link to="/login">{t("nav_login")}</Link>
-            </Button>
-            <Button variant="hero" size="sm" asChild>
-              <Link to="/pricing">{t("nav_get_started")}</Link>
-            </Button>
+            <Link to="/login" className="hidden sm:inline text-sm px-3 py-2">Log in</Link>
+            <Link to="/login?next=/events/new" className="bg-accent text-accent-foreground rounded-full px-4 py-2 text-sm font-bold">Create your Wazi</Link>
           </div>
         </div>
       </nav>
 
-      {/* HERO */}
-      <HeroSection />
-
-      {/* UGC photo wall */}
-      <section id="wall" className="py-12 px-4 relative">
-        <div className="container max-w-7xl mx-auto">
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 md:gap-3">
-            {ugc.map((src, i) => (
-              <motion.div key={i}
-                initial={{ opacity: 0, scale: 0.9 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true, margin: "-50px" }}
-                transition={{ delay: (i % 6) * 0.04, duration: 0.5 }}
-                className={`relative rounded-2xl overflow-hidden shadow-lg ${i % 5 === 0 ? "aspect-[3/4] row-span-2" : "aspect-square"}`}>
-                <img src={src} alt="Event" loading="lazy" className="w-full h-full object-cover hover:scale-105 transition-transform duration-700" />
-              </motion.div>
-            ))}
-          </div>
-          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-            className="mt-10 max-w-2xl mx-auto bg-card/90 backdrop-blur rounded-2xl p-6 text-center shadow-xl border border-border/50">
-            <p className="text-xs uppercase tracking-widest text-primary font-semibold">40 Million+ moments captured 🎉</p>
-            <p className="font-heading text-2xl md:text-3xl font-bold mt-2">Making events awesome since day one.</p>
-          </motion.div>
-        </div>
-      </section>
-
-      <AdSlot slotKey="landing-mid" className="container max-w-3xl mx-auto" />
-
-      {/* 6 Reasons (Lense-inspired with phone in middle) */}
-      <section id="features" className="py-20 px-4 bg-card/40">
-        <div className="container max-w-6xl mx-auto">
-          <motion.h2 initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-            className="font-heading text-3xl md:text-5xl font-bold text-center mb-16">
-            {t("why_title")}
-          </motion.h2>
-          <div className="grid lg:grid-cols-3 gap-10 items-center">
-            <ul className="space-y-8 lg:text-right">
-              {[
-                { icon: Camera, title: "Capture every moment", desc: "Each guest gets a disposable-style camera in their browser. No app, no signup." },
-                { icon: Clock, title: "Delayed reveal", desc: "Photos stay hidden until you choose. The anticipation is everything." },
-                { icon: Sparkles, title: "One shared album", desc: "Every guest's perspective in one stunning gallery." },
-              ].map((r, i) => (
-                <motion.li key={i} initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}
-                  transition={{ delay: i * 0.1 }} className="space-y-1">
-                  <div className="font-heading font-semibold flex items-center gap-2 lg:flex-row-reverse">
-                    <r.icon className="w-4 h-4 text-primary" /> {i + 1}. {r.title}
-                  </div>
-                  <p className="text-sm text-muted-foreground leading-relaxed">{r.desc}</p>
-                </motion.li>
-              ))}
-            </ul>
-            <div className="flex justify-center order-first lg:order-none">
-              <PhoneMock src={hero1} rotate={0} delay={0} />
+      {/* Hero */}
+      <section className="pt-28 pb-16 px-4 bg-foreground text-background">
+        <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.3em] text-accent mb-6">Everyone has a perspective</p>
+            <h1 className="font-display uppercase text-[14vw] sm:text-7xl lg:text-8xl leading-[0.88]">Capture everyone's perspective.</h1>
+            <p className="mt-6 text-lg text-background/75 max-w-lg">Turn every guest's phone into a disposable camera. One QR code. No app download. Hundreds of moments you would have missed.</p>
+            <div className="mt-8 flex flex-col sm:flex-row gap-3">
+              <Link to="/login?next=/events/new" className="bg-accent text-accent-foreground rounded-full px-8 py-4 font-bold uppercase tracking-wide text-center inline-flex items-center justify-center gap-2">Create your Wazi <ArrowRight className="w-4 h-4" /></Link>
+              <Link to="/join" className="border-2 border-background/40 hover:border-background rounded-full px-8 py-4 font-bold uppercase tracking-wide text-center">Join an event</Link>
             </div>
-            <ul className="space-y-8">
-              {[
-                { icon: QrCode, title: "Easy QR sharing", desc: "Scan to launch — no downloads required." },
-                { icon: Wand2, title: "Pro filters & effects", desc: "Disposable, B&W, glam, vintage. Plus video, GIF & boomerang." },
-                { icon: Lock, title: "Safe cloud storage", desc: "Private until reveal. Hosts always own a downloadable copy." },
-              ].map((r, i) => (
-                <motion.li key={i} initial={{ opacity: 0, x: 20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}
-                  transition={{ delay: i * 0.1 }} className="space-y-1">
-                  <div className="font-heading font-semibold flex items-center gap-2">
-                    <r.icon className="w-4 h-4 text-primary" /> {i + 4}. {r.title}
-                  </div>
-                  <p className="text-sm text-muted-foreground leading-relaxed">{r.desc}</p>
-                </motion.li>
-              ))}
-            </ul>
+            <div className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm text-background/60">
+              {["No app", "Pay with M-PESA", "Private by default"].map((x) => <span key={x} className="inline-flex items-center gap-1.5"><Check className="w-4 h-4 text-accent" />{x}</span>)}
+            </div>
+          </div>
+          <div className="relative h-[420px] sm:h-[520px]">
+            {[1684187, 1043902, 2306281, 1729797].map((p, i) => (
+              <motion.img key={p} src={img(p, 600)} alt="Guest photo from an event" loading={i < 2 ? "eager" : "lazy"}
+                initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 * i, duration: 0.6 }}
+                className={`absolute w-44 sm:w-60 aspect-[3/4] object-cover rounded-2xl border-[6px] border-background shadow-2xl ${[
+                  "left-0 top-6 -rotate-6", "left-1/2 -translate-x-1/2 top-0 z-10", "right-0 top-16 rotate-6", "left-1/4 bottom-0 rotate-3 z-20"][i]}`} />
+            ))}
+            <div className="absolute right-2 bottom-4 z-30 bg-background text-foreground rounded-2xl p-4 shadow-2xl rotate-[-4deg] w-40 text-center">
+              <QrCode className="w-20 h-20 mx-auto" />
+              <p className="font-display uppercase text-sm mt-2">Scan to capture</p>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Beyond just a photobooth */}
-      <section className="py-20 px-4">
-        <div className="container max-w-5xl mx-auto">
-          <motion.h2 initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-            className="font-heading text-3xl md:text-5xl font-bold text-center mb-4">
-            More than just a photobooth
-          </motion.h2>
-          <p className="text-center text-muted-foreground mb-12 max-w-xl mx-auto">
-            Photo, Video, Boomerang, GIF, Green Screen, Audio Guestbook & Photobook export — all in one PWA.
-          </p>
-          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
-            {[
-              { icon: Camera, title: "Photo Booth", desc: "Classic snaps with filters & overlays." },
-              { icon: Sparkles, title: "GIF Booth", desc: "4-photo bursts that loop forever." },
-              { icon: Wand2, title: "Boomerang", desc: "Forward-and-reverse magic clips." },
-              { icon: BookOpen, title: "Photobook PDF", desc: "Auto-generated layouts. One-click export." },
-              { icon: Mic, title: "Audio Guestbook", desc: "Voicemails alongside the album." },
-              { icon: Globe, title: "Multilingual + global pay", desc: "5 languages. M-Pesa, Stripe, more." },
-            ].map((f, i) => (
-              <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-                transition={{ delay: i * 0.05 }}
-                className="glass-card rounded-2xl p-5 space-y-2 hover:shadow-lg transition-shadow">
-                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                  <f.icon className="w-5 h-5 text-primary" />
-                </div>
-                <h3 className="font-heading font-semibold">{f.title}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">{f.desc}</p>
-              </motion.div>
+      {/* Problem */}
+      <section className="px-4 py-20 max-w-5xl mx-auto text-center">
+        <h2 className="font-display uppercase text-4xl sm:text-6xl leading-none">Your photographer can't be everywhere.</h2>
+        <p className="mt-6 text-xl text-muted-foreground">That's why everyone gets a camera. Scan. Shoot. Share.</p>
+      </section>
+
+      {/* How */}
+      <section id="how" className="px-4 pb-20 max-w-7xl mx-auto">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {STEPS.map((s, i) => (
+            <div key={s.t} className="rounded-3xl border border-border bg-card p-6">
+              <span className="font-display text-5xl text-accent">0{i + 1}</span>
+              <s.icon className="w-6 h-6 mt-4" />
+              <h3 className="font-bold text-lg mt-3">{s.t}</h3>
+              <p className="text-muted-foreground mt-1 text-sm">{s.d}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Niches */}
+      <section id="niches" className="px-4 py-20 bg-muted/40">
+        <div className="max-w-7xl mx-auto">
+          <p className="text-xs font-bold uppercase tracking-[0.3em] text-accent">Made for every gathering</p>
+          <h2 className="font-display uppercase text-4xl sm:text-6xl mt-3 leading-none">If people gather, Wazi fits.</h2>
+          <div className="mt-8 flex gap-2 overflow-x-auto pb-2 -mx-4 px-4">
+            {NICHES.map((x, i) => (
+              <button key={x.id} onClick={() => setActive(i)} aria-pressed={i === active}
+                className={`shrink-0 inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium border transition-colors ${i === active ? "bg-foreground text-background border-foreground" : "border-border hover:border-foreground"}`}>
+                <x.icon className="w-4 h-4" />{x.label}
+              </button>
             ))}
           </div>
+          <motion.div key={n.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-6 grid md:grid-cols-2 rounded-3xl overflow-hidden bg-card border border-border">
+            <img src={img(n.photo, 1200)} alt={n.label} className="w-full h-72 md:h-[420px] object-cover" />
+            <div className="p-8 md:p-12 flex flex-col justify-center">
+              <n.icon className="w-8 h-8 text-accent" />
+              <h3 className="font-display uppercase text-4xl md:text-5xl mt-4 leading-none">{n.title}</h3>
+              <p className="text-muted-foreground mt-4 text-lg">{n.sub}</p>
+              <Link to="/login?next=/events/new" className="mt-8 self-start bg-accent text-accent-foreground rounded-full px-6 py-3 font-bold inline-flex items-center gap-2">Start for {n.label.toLowerCase()} <ArrowRight className="w-4 h-4" /></Link>
+            </div>
+          </motion.div>
+          <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            {NICHES.map((x, i) => (
+              <button key={x.id} onClick={() => setActive(i)} className="group relative aspect-square rounded-2xl overflow-hidden text-left">
+                <img src={img(x.photo, 400)} alt="" loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                <span className="absolute inset-0 bg-gradient-to-t from-foreground/80 to-transparent" />
+                <span className="absolute bottom-3 left-3 text-background font-bold text-sm">{x.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Reveal */}
+      <section className="px-4 py-20 bg-foreground text-background">
+        <div className="max-w-5xl mx-auto text-center">
+          <p className="text-xs font-bold uppercase tracking-[0.3em] text-accent">The reveal</p>
+          <h2 className="font-display uppercase text-4xl sm:text-7xl mt-3 leading-none">The memories are developing…</h2>
+          <p className="mt-6 text-lg text-background/70">Show photos instantly, after the event, or on a date you choose. Like waiting for film — but the next morning.</p>
+        </div>
+      </section>
+
+      {/* Pricing */}
+      <section id="pricing" className="px-4 py-20 max-w-7xl mx-auto">
+        <h2 className="font-display uppercase text-4xl sm:text-6xl text-center leading-none">Simple pricing in Ksh.</h2>
+        <p className="text-center text-muted-foreground mt-4">Pay once per event with M-PESA or card.</p>
+        <div className="mt-10 grid md:grid-cols-3 gap-4">
+          {tiers.map((t, i) => (
+            <div key={t.id} className={`rounded-3xl p-8 border ${i === 1 ? "bg-foreground text-background border-foreground" : "bg-card border-border"}`}>
+              <p className="font-bold uppercase tracking-widest text-sm">{t.name || t.id}</p>
+              <p className="font-display text-5xl mt-4">Ksh {Number(t.base_kes).toLocaleString()}</p>
+              <p className="text-sm opacity-70 mt-1">+ Ksh {t.per_guest_kes} per guest</p>
+              <Link to="/login?next=/events/new" className={`mt-8 block text-center rounded-full py-3 font-bold ${i === 1 ? "bg-accent text-accent-foreground" : "border-2 border-foreground"}`}>Create your Wazi</Link>
+            </div>
+          ))}
+        </div>
+        <p className="text-center mt-6"><Link to="/pricing" className="underline">See full pricing</Link></p>
+      </section>
+
+      {/* FAQ */}
+      <section id="faq" className="px-4 py-20 max-w-3xl mx-auto">
+        <h2 className="font-display uppercase text-4xl sm:text-5xl text-center">Questions</h2>
+        <div className="mt-8 divide-y divide-border border-y border-border">
+          {FAQ.map(([q, a], i) => (
+            <div key={q}>
+              <button className="w-full flex justify-between items-center py-5 text-left font-medium" aria-expanded={open === i} onClick={() => setOpen(open === i ? null : i)}>
+                {q}<span className="text-2xl text-accent">{open === i ? "−" : "+"}</span>
+              </button>
+              {open === i && <p className="pb-5 text-muted-foreground">{a}</p>}
+            </div>
+          ))}
         </div>
       </section>
 
       {/* CTA */}
-      <section className="py-24 px-4 bg-gradient-hero">
-        <div className="container max-w-3xl mx-auto text-center space-y-6">
-          <motion.h2 initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-            className="font-heading text-3xl md:text-5xl font-bold">
-            Ready to capture every POV?
-          </motion.h2>
-          <p className="text-muted-foreground text-lg">Start free. Upgrade when you're hooked.</p>
-          <Button variant="hero" size="xl" asChild>
-            <Link to="/pricing">Get Started <ArrowRight className="w-5 h-5" /></Link>
-          </Button>
-        </div>
+      <section className="px-4 py-24 bg-accent text-accent-foreground text-center">
+        <h2 className="font-display uppercase text-5xl sm:text-7xl leading-none">No app. No setup.<br />Just the moment.</h2>
+        <Link to="/login?next=/events/new" className="mt-10 inline-flex items-center gap-2 bg-foreground text-background rounded-full px-10 py-4 font-bold uppercase">Create your Wazi <ArrowRight className="w-4 h-4" /></Link>
       </section>
 
-      <footer className="border-t border-border/50 py-8 px-4">
-        <div className="container flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded bg-gradient-warm flex items-center justify-center">
-              <Camera className="w-3 h-3 text-primary-foreground" />
-            </div>
-            <span className="font-heading font-semibold text-foreground">POV Moments</span>
-          </div>
-          <p>© {new Date().getFullYear()} POV Moments. All rights reserved.</p>
+      <footer className="px-4 py-10 border-t border-border">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between gap-4 text-sm text-muted-foreground">
+          <span className="font-display text-xl uppercase text-foreground">Wazi<span className="text-accent">.</span></span>
+          <div className="flex gap-6"><Link to="/pricing">Pricing</Link><Link to="/join">Join an event</Link><Link to="/login">Log in</Link></div>
+          <span>© {new Date().getFullYear()} Wazi Events · wazievents.co.ke</span>
         </div>
       </footer>
     </div>
