@@ -124,6 +124,39 @@ export type Database = {
         }
         Relationships: []
       }
+      contact_messages: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          message: string
+          name: string
+          phone: string | null
+          status: string
+          topic: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          message: string
+          name: string
+          phone?: string | null
+          status?: string
+          topic?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          message?: string
+          name?: string
+          phone?: string | null
+          status?: string
+          topic?: string
+        }
+        Relationships: []
+      }
       event_guests: {
         Row: {
           claimed_by_user_id: string | null
@@ -889,6 +922,7 @@ export type Database = {
           snaps_remaining: number
         }[]
       }
+      referrer_for_code: { Args: { _code: string }; Returns: string }
       register_shot: {
         Args: {
           _client_capture_id?: string
