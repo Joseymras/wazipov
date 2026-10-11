@@ -91,9 +91,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Best-effort referral row (uses referral_code → user_id lookup)
     if (!error && data.user && ref) {
       try {
-        const { data: refProfile } = await supabase.from("profiles").select("user_id").eq("referral_code", ref).maybeSingle();
-        if (refProfile) {
-          await supabase.from("referrals").insert({ referrer_id: refProfile.user_id, referred_id: data.user.id });
+        const { data: referrerId } = await supabase.rpc("referrer_for_code", { _code: ref });
+        if (referrerId) {
+          await supabase.from("referrals").insert({ referrer_id: referrerId as string, referred_id: data.user.id });
         }
       } catch { /* ignore */ }
       localStorage.removeItem("pov_ref");
