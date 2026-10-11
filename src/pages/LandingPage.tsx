@@ -57,6 +57,7 @@ export default function LandingPage() {
             <a href="#niches" className="hover:text-foreground">Use cases</a>
             <a href="#pricing" className="hover:text-foreground">Pricing</a>
             <a href="#faq" className="hover:text-foreground">FAQ</a>
+            <Link to="/contact" className="hover:text-foreground">Contact</Link>
           </div>
           <div className="flex items-center gap-2">
             <ThemeToggle />
@@ -200,7 +201,7 @@ export default function LandingPage() {
       <footer className="px-4 py-10 border-t border-border">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between gap-4 text-sm text-muted-foreground">
           <span className="font-display text-xl uppercase text-foreground">Wazi<span className="text-accent">.</span></span>
-          <div className="flex gap-6"><Link to="/pricing">Pricing</Link><Link to="/join">Join an event</Link><Link to="/login">Log in</Link></div>
+          <div className="flex gap-6"><Link to="/pricing">Pricing</Link><Link to="/join">Join an event</Link><Link to="/login">Log in</Link><Link to="/contact">Contact</Link><a href="mailto:joseymras88@gmail.com">joseymras88@gmail.com</a></div>
           <span>© {new Date().getFullYear()} Wazi Events · wazievents.co.ke</span>
         </div>
       </footer>

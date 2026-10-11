@@ -31,6 +31,7 @@ import NotFound from "./pages/NotFound";
 import JoinPage from "./pages/JoinPage";
 import EventLinkPage from "./pages/EventLinkPage";
 import ActivateEventPage from "./pages/ActivateEventPage";
+import ContactPage from "./pages/ContactPage";
 import AIChatWidget from "@/components/AIChatWidget";
 
 const queryClient = new QueryClient();
@@ -50,6 +51,7 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/" element={<LandingPage />} />
+            <Route path="/contact" element={<ContactPage />} />
             <Route path="/pricing" element={<PricingPage />} />
             <Route path="/discover" element={<DiscoverPage />} />
             <Route path="/city/:citySlug" element={<CityPage />} />
