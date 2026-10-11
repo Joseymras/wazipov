@@ -10,7 +10,7 @@ export default function AIChatWidget() {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [msgs, setMsgs] = useState<Msg[]>([
-    { role: "assistant", content: "Hey! I'm the POV assistant 👋 Ask me about events, pricing, the camera, or anything else." },
+    { role: "assistant", content: "Karibu! I'm the Wazi assistant. Ask me about creating an event, the guest camera, M-Pesa payments, reveals or anything else." },
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -62,9 +62,9 @@ export default function AIChatWidget() {
             className="fixed bottom-24 right-5 z-50 w-[min(92vw,380px)] h-[min(75vh,560px)] rounded-3xl glass-card shadow-2xl flex flex-col overflow-hidden"
           >
             <div className="bg-gradient-warm px-4 py-3 text-primary-foreground flex items-center gap-2">
-              <Sparkles className="w-4 h-4" />
+              <MessageCircle className="w-4 h-4" />
               <div className="flex-1">
-                <p className="font-heading font-semibold text-sm">POV Assistant</p>
+                <p className="font-heading font-semibold text-sm">Wazi Assistant</p>
                 <p className="text-[10px] opacity-80">Powered by Lovable AI</p>
               </div>
             </div>
