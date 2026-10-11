@@ -248,8 +248,39 @@ export default function AdminPage() {
               </div>
             )}
           </div>
+          <ContactInbox />
         </div>
       </div>
+    </div>
+  );
+}
+
+function ContactInbox() {
+  const [rows, setRows] = useState<any[]>([]);
+  const load = () => supabase.from("contact_messages").select("*").order("created_at", { ascending: false }).limit(50).then(({ data }) => setRows(data || []));
+  useEffect(() => { load(); }, []);
+  async function mark(id: string, status: string) { await supabase.from("contact_messages").update({ status }).eq("id", id); load(); }
+  return (
+    <div className="rounded-2xl border border-border bg-card p-6 mt-8">
+      <h2 className="font-heading text-xl font-bold mb-4">Contact messages</h2>
+      {rows.length === 0 ? <p className="text-sm text-muted-foreground">No messages yet.</p> : (
+        <div className="space-y-3">
+          {rows.map((r) => (
+            <div key={r.id} className="rounded-xl border border-border p-4 text-sm">
+              <div className="flex flex-wrap justify-between gap-2">
+                <span className="font-semibold">{r.name} · {r.topic}</span>
+                <span className="text-muted-foreground">{new Date(r.created_at).toLocaleString()}</span>
+              </div>
+              <p className="text-muted-foreground">{[r.email, r.phone].filter(Boolean).join(" · ")}</p>
+              <p className="mt-2 whitespace-pre-wrap">{r.message}</p>
+              <div className="mt-3 flex gap-2">
+                {r.email && <Button size="sm" variant="outline" asChild><a href={`mailto:${r.email}?subject=Re: your Wazi message`}>Reply</a></Button>}
+                <Button size="sm" variant={r.status === "done" ? "secondary" : "default"} onClick={() => mark(r.id, r.status === "done" ? "new" : "done")}>{r.status === "done" ? "Reopen" : "Mark done"}</Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
