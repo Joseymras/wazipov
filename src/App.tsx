@@ -31,6 +31,7 @@ import NotFound from "./pages/NotFound";
 import JoinPage from "./pages/JoinPage";
 import EventLinkPage from "./pages/EventLinkPage";
 import ActivateEventPage from "./pages/ActivateEventPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 import ContactPage from "./pages/ContactPage";
 import AIChatWidget from "@/components/AIChatWidget";
 
@@ -51,6 +52,7 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/" element={<LandingPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/contact" element={<ContactPage />} />
             <Route path="/pricing" element={<PricingPage />} />
             <Route path="/discover" element={<DiscoverPage />} />
