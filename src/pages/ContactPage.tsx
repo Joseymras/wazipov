@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Mail, MessageCircle, Clock, Loader2, CheckCircle2 } from "lucide-react";
+import { MessageCircle, Clock, Loader2, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 
@@ -46,9 +46,6 @@ export default function ContactPage() {
             <a href={wa} target="_blank" rel="noreferrer" className="flex items-center gap-3 rounded-2xl bg-primary text-primary-foreground p-4 font-semibold">
               <MessageCircle className="w-5 h-5" /> Chat with us on WhatsApp
             </a>
-            <a href={`mailto:${CONTACT_EMAIL}`} className="flex items-center gap-3 rounded-2xl border border-border p-4">
-              <Mail className="w-5 h-5 text-primary" /> <span className="break-all">{CONTACT_EMAIL}</span>
-            </a>
             <div className="flex items-center gap-3 rounded-2xl border border-border p-4 text-sm">
               <Clock className="w-5 h-5 text-primary" /> Mon to Sat, 8:00 to 20:00 EAT · Nairobi, Kenya
             </div>
@@ -76,7 +73,7 @@ export default function ContactPage() {
               <label className="block space-y-1 text-sm font-medium">Message<textarea required rows={6} maxLength={3000} className={field} value={form.message} onChange={set("message")} /></label>
               <input tabIndex={-1} autoComplete="off" aria-hidden className="hidden" value={form.website} onChange={set("website")} />
               {err && <p className="text-sm text-destructive">{err}</p>}
-              {state === "error" && <p className="text-sm text-destructive">We couldn't send that. Please try again or email {CONTACT_EMAIL}.</p>}
+              {state === "error" && <p className="text-sm text-destructive">We couldn't send that. Please try again in a moment.</p>}
               <Button type="submit" size="lg" className="w-full rounded-xl" disabled={state === "sending" || !form.name}>
                 {state === "sending" ? <Loader2 className="w-4 h-4 animate-spin" /> : "Send message"}
               </Button>

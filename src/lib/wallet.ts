@@ -15,26 +15,17 @@ export function getOwnerKey(userId?: string | null): string {
 }
 
 export async function getOrCreateWallet(ownerKey: string) {
-  let { data } = await supabase.from("wallets").select("*").eq("owner_key", ownerKey).maybeSingle();
-  if (!data) {
-    const { data: created } = await supabase.from("wallets").insert({ owner_key: ownerKey, balance_tokens: 0 }).select().single();
-    data = created!;
-  }
-  return data;
+  const { data } = await supabase.rpc("wallet_balance", { _owner_key: ownerKey });
+  return { owner_key: ownerKey, balance_tokens: (data as number) ?? 0 };
 }
 
 export async function isUnlocked(eventId: string, ownerKey: string) {
-  const { data } = await supabase.from("gallery_unlocks").select("id").eq("event_id", eventId).eq("owner_key", ownerKey).maybeSingle();
+  const { data } = await supabase.rpc("gallery_is_unlocked", { _event_id: eventId, _owner_key: ownerKey });
   return !!data;
 }
 
 export async function spendTokensToUnlock(eventId: string, ownerKey: string) {
-  const wallet = await getOrCreateWallet(ownerKey);
-  if (wallet.balance_tokens < UNLOCK_COST) return { ok: false, reason: "insufficient" };
-  await supabase.from("wallets").update({ balance_tokens: wallet.balance_tokens - UNLOCK_COST }).eq("id", wallet.id);
-  await supabase.from("wallet_transactions").insert({
-    wallet_id: wallet.id, delta_tokens: -UNLOCK_COST, kind: "unlock", event_id: eventId,
-  });
-  await supabase.from("gallery_unlocks").insert({ event_id: eventId, owner_key: ownerKey });
+  const { data, error } = await supabase.rpc("wallet_unlock", { _event_id: eventId, _owner_key: ownerKey, _cost: UNLOCK_COST });
+  if (error || !data) return { ok: false, reason: "insufficient" };
   return { ok: true };
 }

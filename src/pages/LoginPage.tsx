@@ -7,6 +7,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { lovable } from "@/integrations/lovable/index";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
@@ -42,9 +43,22 @@ export default function LoginPage() {
             .eq("guest_identifier", guestIdent);
         }
       }
-      navigate(next);
+      const saved = localStorage.getItem("wazi_next"); localStorage.removeItem("wazi_next");
+      navigate(saved && saved.startsWith("/") ? saved : next);
     })();
   }, [user, claimEventId, next, navigate]);
+
+  async function google() {
+    if (next.startsWith("/")) localStorage.setItem("wazi_next", next);
+    const r = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin + "/login" });
+    if (r.error) toast({ title: "Google sign-in didn't work", description: "Please try again or use email.", variant: "destructive" });
+  }
+
+  async function forgot() {
+    if (!email) { toast({ title: "Enter your email first", description: "Type the email you signed up with, then tap Forgot password." }); return; }
+    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/reset-password` });
+    toast(error ? { title: "Couldn't send reset email", description: "Please try again shortly.", variant: "destructive" } : { title: "Check your email", description: "We sent you a link to set a new password." });
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -71,19 +85,19 @@ export default function LoginPage() {
       <motion.div initial="hidden" animate="visible" className="w-full max-w-md space-y-8">
         <motion.div variants={fadeUp} custom={0} className="text-center space-y-2">
           <Link to="/" className="inline-flex items-center gap-2">
-            <div className="w-12 h-12 rounded-2xl bg-foreground flex items-center justify-center">
-              <Camera className="w-6 h-6 text-background" />
-            </div>
+            <span className="font-display text-3xl font-bold">WAZI<span className="text-primary">.</span></span>
           </Link>
           <h1 className="font-heading text-2xl font-bold">
             {isSignUp ? "Create your account" : "Welcome back"}
           </h1>
           <p className="text-muted-foreground text-sm">
-            {isSignUp ? "Start capturing moments" : "Continue where you left off"}
+            {isSignUp ? "Every guest becomes your photographer" : "Continue where you left off"}
           </p>
         </motion.div>
 
-        <motion.form onSubmit={handleSubmit} variants={fadeUp} custom={1} className="glass-card rounded-3xl p-8 space-y-5">
+        <motion.form onSubmit={handleSubmit} variants={fadeUp} custom={1} className="bg-card border border-border rounded-2xl p-8 space-y-5">
+          <Button type="button" variant="outline" size="lg" className="w-full rounded-xl" onClick={google}>Continue with Google</Button>
+          <div className="flex items-center gap-3 text-xs text-muted-foreground"><span className="h-px flex-1 bg-border" />or with email<span className="h-px flex-1 bg-border" /></div>
           {isSignUp && (
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground">Full Name</label>
@@ -117,7 +131,8 @@ export default function LoginPage() {
               </button>
             </div>
           </div>
-          <Button size="lg" className="w-full rounded-full" type="submit" disabled={loading}>
+          {!isSignUp && <button type="button" onClick={forgot} className="text-sm text-primary hover:underline">Forgot password?</button>}
+          <Button size="lg" className="w-full rounded-xl" type="submit" disabled={loading}>
             {loading ? "Loading..." : isSignUp ? "Create Account" : "Sign In"} <ArrowRight className="w-4 h-4" />
           </Button>
         </motion.form>

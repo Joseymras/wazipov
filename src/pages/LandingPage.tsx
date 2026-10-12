@@ -162,14 +162,14 @@ export default function LandingPage() {
 
       {/* Pricing */}
       <section id="pricing" className="px-4 py-20 max-w-7xl mx-auto">
-        <h2 className="font-display uppercase text-4xl sm:text-6xl text-center leading-none">Simple pricing in Ksh.</h2>
-        <p className="text-center text-muted-foreground mt-4">Pay once per event with M-PESA or card.</p>
+        <h2 className="font-display uppercase text-4xl sm:text-6xl text-center leading-none">Simple pricing. KES or USD.</h2>
+        <p className="text-center text-muted-foreground mt-4">Pay once per event. M-Pesa or card in Kenya, card in US dollars everywhere else.</p>
         <div className="mt-10 grid md:grid-cols-3 gap-4">
           {tiers.map((t, i) => (
             <div key={t.id} className={`rounded-3xl p-8 border ${i === 1 ? "bg-foreground text-background border-foreground" : "bg-card border-border"}`}>
               <p className="font-bold uppercase tracking-widest text-sm">{t.name || t.id}</p>
               <p className="font-display text-5xl mt-4">Ksh {Number(t.base_kes).toLocaleString()}</p>
-              <p className="text-sm opacity-70 mt-1">+ Ksh {t.per_guest_kes} per guest</p>
+              <p className="text-sm opacity-70 mt-1">+ Ksh {t.per_guest_kes} per guest · about US${Math.max(1, Math.round(Number(t.base_kes) / 130))}</p>
               <Link to="/login?next=/events/new" className={`mt-8 block text-center rounded-full py-3 font-bold ${i === 1 ? "bg-accent text-accent-foreground" : "border-2 border-foreground"}`}>Create your Wazi</Link>
             </div>
           ))}
@@ -201,8 +201,8 @@ export default function LandingPage() {
       <footer className="px-4 py-10 border-t border-border">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between gap-4 text-sm text-muted-foreground">
           <span className="font-display text-xl uppercase text-foreground">Wazi<span className="text-accent">.</span></span>
-          <div className="flex gap-6"><Link to="/pricing">Pricing</Link><Link to="/join">Join an event</Link><Link to="/login">Log in</Link><Link to="/contact">Contact</Link><a href="mailto:joseymras88@gmail.com">joseymras88@gmail.com</a></div>
-          <span>© {new Date().getFullYear()} Wazi Events · wazievents.co.ke</span>
+          <div className="flex gap-6"><Link to="/pricing">Pricing</Link><Link to="/join">Join an event</Link><Link to="/login">Log in</Link><Link to="/contact">Contact</Link></div>
+          <span>© {new Date().getFullYear()} Wazi POV</span>
         </div>
       </footer>
     </div>
