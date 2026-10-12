@@ -640,14 +640,18 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          bio: string | null
+          company: string | null
           country_code: string | null
           created_at: string
           display_name: string | null
           id: string
           onboarded: boolean
+          phone: string | null
           preferred_currency: string | null
           referral_code: string | null
           subscription_tier: Database["public"]["Enums"]["subscription_tier"]
+          suspended: boolean
           trial_ends_at: string | null
           trial_tier: string
           updated_at: string
@@ -655,14 +659,18 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
+          bio?: string | null
+          company?: string | null
           country_code?: string | null
           created_at?: string
           display_name?: string | null
           id?: string
           onboarded?: boolean
+          phone?: string | null
           preferred_currency?: string | null
           referral_code?: string | null
           subscription_tier?: Database["public"]["Enums"]["subscription_tier"]
+          suspended?: boolean
           trial_ends_at?: string | null
           trial_tier?: string
           updated_at?: string
@@ -670,14 +678,18 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
+          bio?: string | null
+          company?: string | null
           country_code?: string | null
           created_at?: string
           display_name?: string | null
           id?: string
           onboarded?: boolean
+          phone?: string | null
           preferred_currency?: string | null
           referral_code?: string | null
           subscription_tier?: Database["public"]["Enums"]["subscription_tier"]
+          suspended?: boolean
           trial_ends_at?: string | null
           trial_tier?: string
           updated_at?: string
@@ -897,7 +909,34 @@ export type Database = {
         Args: { _event_id: string; _guests: number; _shots: number }
         Returns: undefined
       }
+      admin_list_users: {
+        Args: never
+        Returns: {
+          company: string
+          created_at: string
+          display_name: string
+          email: string
+          events: number
+          phone: string
+          roles: string[]
+          subscription_tier: Database["public"]["Enums"]["subscription_tier"]
+          suspended: boolean
+          user_id: string
+        }[]
+      }
+      admin_set_role: {
+        Args: {
+          _on: boolean
+          _role: Database["public"]["Enums"]["app_role"]
+          _user: string
+        }
+        Returns: undefined
+      }
       event_is_revealed: { Args: { _event_id: string }; Returns: boolean }
+      gallery_is_unlocked: {
+        Args: { _event_id: string; _owner_key: string }
+        Returns: boolean
+      }
       guest_can_upload: {
         Args: { _event: string; _guest: string }
         Returns: boolean
@@ -934,6 +973,11 @@ export type Database = {
           _width?: number
         }
         Returns: number
+      }
+      wallet_balance: { Args: { _owner_key: string }; Returns: number }
+      wallet_unlock: {
+        Args: { _cost?: number; _event_id: string; _owner_key: string }
+        Returns: boolean
       }
     }
     Enums: {
