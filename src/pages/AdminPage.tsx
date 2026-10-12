@@ -248,6 +248,7 @@ export default function AdminPage() {
               </div>
             )}
           </div>
+          <AdminUsers />
           <ContactInbox />
         </div>
       </div>
@@ -281,6 +282,66 @@ function ContactInbox() {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function AdminUsers() {
+  const [rows, setRows] = useState<any[]>([]);
+  const [q, setQ] = useState("");
+  const [edit, setEdit] = useState<any | null>(null);
+  const load = () => supabase.rpc("admin_list_users" as any).then(({ data }) => setRows((data as any[]) || []));
+  useEffect(() => { load(); }, []);
+  async function saveUser() {
+    const { error } = await supabase.from("profiles").update({
+      display_name: edit.display_name, phone: edit.phone, company: edit.company,
+      subscription_tier: edit.subscription_tier, suspended: edit.suspended,
+    } as any).eq("user_id", edit.user_id);
+    toast(error ? { title: "Couldn't save", variant: "destructive" } : { title: "User updated" });
+    setEdit(null); load();
+  }
+  async function role(u: any, r: string) {
+    const on = !(u.roles || []).includes(r);
+    const { error } = await supabase.rpc("admin_set_role" as any, { _user: u.user_id, _role: r, _on: on });
+    if (error) toast({ title: "Couldn't change role", variant: "destructive" }); else load();
+  }
+  const list = rows.filter((r) => !q || `${r.email} ${r.display_name}`.toLowerCase().includes(q.toLowerCase()));
+  return (
+    <div className="rounded-2xl border border-border bg-card p-6 mt-8">
+      <div className="flex flex-wrap justify-between gap-3 mb-4">
+        <h2 className="font-heading text-xl font-bold">Users ({rows.length})</h2>
+        <Input placeholder="Search name or email" value={q} onChange={(e) => setQ(e.target.value)} className="max-w-xs" />
+      </div>
+      <div className="space-y-2">
+        {list.map((u) => (
+          <div key={u.user_id} className="rounded-xl border border-border p-3 text-sm">
+            {edit?.user_id === u.user_id ? (
+              <div className="grid sm:grid-cols-2 gap-2">
+                <Input value={edit.display_name || ""} onChange={(e) => setEdit({ ...edit, display_name: e.target.value })} placeholder="Name" />
+                <Input value={edit.phone || ""} onChange={(e) => setEdit({ ...edit, phone: e.target.value })} placeholder="Phone" />
+                <Input value={edit.company || ""} onChange={(e) => setEdit({ ...edit, company: e.target.value })} placeholder="Company" />
+                <select className="h-10 rounded-md border border-input bg-background px-2" value={edit.subscription_tier || "free"} onChange={(e) => setEdit({ ...edit, subscription_tier: e.target.value })}>
+                  {["free", "starter", "pro", "platinum"].map((t) => <option key={t}>{t}</option>)}
+                </select>
+                <label className="flex items-center gap-2"><Switch checked={!!edit.suspended} onCheckedChange={(v) => setEdit({ ...edit, suspended: v })} /> Suspended</label>
+                <div className="flex gap-2"><Button size="sm" onClick={saveUser}>Save</Button><Button size="sm" variant="ghost" onClick={() => setEdit(null)}>Cancel</Button></div>
+              </div>
+            ) : (
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <p className="font-semibold">{u.display_name || "No name"} {u.suspended && <span className="text-destructive">· suspended</span>}</p>
+                  <p className="text-muted-foreground">{u.email} · {u.subscription_tier} · {u.events} events</p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button size="sm" variant="outline" onClick={() => setEdit(u)}>Edit</Button>
+                  <Button size="sm" variant={(u.roles || []).includes("admin") ? "default" : "outline"} onClick={() => role(u, "admin")}>Admin</Button>
+                  {u.email && <Button size="sm" variant="ghost" asChild><a href={`mailto:${u.email}`}>Email</a></Button>}
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
